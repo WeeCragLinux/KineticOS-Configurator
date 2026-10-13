@@ -1,7 +1,7 @@
 # KineticOS Configurator
 
 **Latest RPM version:**
-[`0.2.0-6.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.2.0-6)
+[`0.2.0-7.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.2.0-7)
 (`KineticOS-Configurator`).
 
 The packaged configurator source is in `source/`; the RPM files are at this repository root.
@@ -54,7 +54,9 @@ unchecked preserves that repo's current state. The configurator writes `profile.
 and `modules/*.yaml`, runs `dcli-bootc gen`, and offers to run
 `dcli-bootc build`. The build does not switch deployments automatically; after
 a successful build, the app separately asks whether to switch to the new image
-and reboot.
+and reboot. With older `dcli-bootc` versions, the configurator tolerates only
+the false “should have been removed” report for a package selected by an
+enabled module; missing packages and removal-only errors still fail.
 
 Requires Python 3, PySide6, Git, and `dcli-bootc` (the latter is needed for
 generation/build; Git is needed to clone or update projects).
@@ -66,14 +68,14 @@ These RPMs are for systems running **KineticOS**. Download the binary RPM from t
 then install it with DNF:
 
 ```bash
-sudo dnf install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
+sudo dnf install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
-sudo ki install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
+sudo kinpkg install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
+sudo ki install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
 ```
 
 Do not install this package with `rpm-ostree`.

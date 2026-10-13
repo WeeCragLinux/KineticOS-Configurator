@@ -314,6 +314,80 @@ class ProjectTests(unittest.TestCase):
             saved,
         )
 
+    def test_package_expectations_apply_only_enabled_module_installs(self) -> None:
+        root = self.make_project()
+        (root / "modules" / "removals.yaml").write_text(
+            "description: removals\n"
+            "remove:\n"
+            "  - sample-app\n"
+            "  - orphan-package\n"
+            "  #- commented-removal\n"
+        )
+        (root / "modules" / "apps.yaml").write_text(
+            "description: apps\npackages:\n  - sample-app\n"
+        )
+        (root / "modules" / "disabled.yaml").write_text(
+            "description: disabled apps\npackages:\n  - disabled-only\n"
+        )
+        modules = project.load_modules(root)
+        enabled_modules = [
+            ("removals", True),
+            ("base", True),
+            ("apps", True),
+            ("disabled", False),
+        ]
+
+        selected, effective_removals, overlaps = project.expected_package_state(
+            modules, enabled_modules, root
+        )
+
+        self.assertIn("sample-app", selected)
+        self.assertNotIn("disabled-only", selected)
+        self.assertEqual(effective_removals, {"orphan-package"})
+        self.assertEqual(overlaps, {"sample-app"})
+
+    def test_only_selected_reinstall_removal_verification_failures_are_ignored(self) -> None:
+        output = (
+            "Build complete\n"
+            "Image does not match your modules:\n"
+            "    - should have been removed: dolphin\n"
+            "Fix the modules/repos and rebuild. Not offering to switch to this image.\n"
+        )
+
+        self.assertTrue(project.only_expected_removal_overlaps(output, {"dolphin"}))
+        self.assertFalse(project.only_expected_removal_overlaps(output, set()))
+
+    def test_missing_selected_packages_remain_verification_failures(self) -> None:
+        output = (
+            "Build complete\n"
+            "Image does not match your modules:\n"
+            "    - missing from image: Thunar\n"
+            "Fix the modules/repos and rebuild. Not offering to switch to this image.\n"
+        )
+
+        self.assertFalse(project.only_expected_removal_overlaps(output, {"Thunar"}))
+
+    def test_removal_only_packages_remain_verification_failures(self) -> None:
+        output = (
+            "Build complete\n"
+            "Image does not match your modules:\n"
+            "    - should have been removed: dolphin\n"
+            "Fix the modules/repos and rebuild. Not offering to switch to this image.\n"
+        )
+
+        self.assertFalse(project.only_expected_removal_overlaps(output, set()))
+
+    def test_unrelated_verification_errors_are_not_ignored_with_overlap(self) -> None:
+        output = (
+            "Build complete\n"
+            "Image does not match your modules:\n"
+            "    - should have been removed: dolphin\n"
+            "    - missing from image: Thunar\n"
+            "Fix the modules/repos and rebuild. Not offering to switch to this image.\n"
+        )
+
+        self.assertFalse(project.only_expected_removal_overlaps(output, {"dolphin"}))
+
 
 if __name__ == "__main__":
     unittest.main()

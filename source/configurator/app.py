@@ -414,14 +414,30 @@ class Wizard(QWizard):
                 self,
             )
             if not build_dialog.run():
-                QMessageBox.warning(
-                    self,
-                    "Image build failed",
-                    "dcli-bootc build did not complete successfully.\n\n"
-                    + build_dialog.output.toPlainText()[-4000:],
+                enabled_modules = project.resolve(self.profile, self.state)
+                _, _, reinstall_overlaps = project.expected_package_state(
+                    self.modules, enabled_modules, self.root
                 )
-                super().accept()
-                return
+                build_output = build_dialog.output.toPlainText()
+                if project.only_expected_removal_overlaps(
+                    build_output, reinstall_overlaps
+                ):
+                    QMessageBox.information(
+                        self,
+                        "Image built",
+                        "The image build completed. This dcli-bootc version reported a "
+                        "selected package as removed even though an enabled module installs "
+                        "it later. No other package-verification errors were reported.",
+                    )
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Image build failed",
+                        "dcli-bootc build did not complete successfully.\n\n"
+                        + build_output[-4000:],
+                    )
+                    super().accept()
+                    return
 
             switch = QMessageBox.question(
                 self,
