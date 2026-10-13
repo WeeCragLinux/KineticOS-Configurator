@@ -1,6 +1,8 @@
 # KineticOS Configurator
 
-**Latest RPM version:** `0.2.0-5.fc44` (`KineticOS-Configurator`).
+**Latest RPM version:**
+[`0.2.0-6.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.2.0-6)
+(`KineticOS-Configurator`).
 
 The packaged configurator source is in `source/`; the RPM files are at this repository root.
 
@@ -59,18 +61,19 @@ generation/build; Git is needed to clone or update projects).
 
 ## Install the KineticOS Configurator RPM
 
-These RPMs are for systems running **KineticOS**. Install the built package with
-DNF:
+These RPMs are for systems running **KineticOS**. Download the binary RPM from the
+[latest GitHub release](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/latest),
+then install it with DNF:
 
 ```bash
-sudo dnf install ./KineticOS-Configurator-0.2.0-5.fc44.noarch.rpm
+sudo dnf install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./KineticOS-Configurator-0.2.0-5.fc44.noarch.rpm
-sudo ki install ./KineticOS-Configurator-0.2.0-5.fc44.noarch.rpm
+sudo kinpkg install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
+sudo ki install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
