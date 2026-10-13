@@ -324,9 +324,11 @@ class Wizard(QWizard):
             apps={
                 name: {app.name for app in module.apps if app.enabled}
                 for name, module in self.modules.items()
-                if any(app.enabled for app in module.apps)
+                if name != "base" and any(app.enabled for app in module.apps)
             },
-            app_modules={name for name, module in self.modules.items() if module.apps},
+            app_modules={
+                name for name, module in self.modules.items() if name != "base" and module.apps
+            },
             brave_repo_enabled=project.repo_command_enabled(
                 self.modules.get("browsers"), "brave"
             ),
@@ -347,7 +349,7 @@ class Wizard(QWizard):
         self.module_pages: list[ModulePage] = []
         for name, _ in self.profile.entries:
             module = self.modules.get(name)
-            if module is None or not module.apps:
+            if name == "base" or module is None or not module.apps:
                 continue
             page = ModulePage(self, module)
             self.add_page(page)

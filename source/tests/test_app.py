@@ -30,9 +30,16 @@ class WizardTests(unittest.TestCase):
             "- terra\n"
         )
         for name in ("base", "rpmfusion", "terra"):
-            (root / "modules" / f"{name}.yaml").write_text(
-                f"description: {name}\npackages: []\n"
-            )
+            if name == "base":
+                content = (
+                    "description: base\n"
+                    "packages:\n"
+                    "  - mandatory-base-package\n"
+                    "  #- optional-base-entry\n"
+                )
+            else:
+                content = f"description: {name}\npackages: []\n"
+            (root / "modules" / f"{name}.yaml").write_text(content)
         (root / "modules" / "browsers.yaml").write_text(
             "description: browser apps\n"
             "packages:\n"
@@ -60,8 +67,24 @@ class WizardTests(unittest.TestCase):
         page_modules = {page.module.name for page in wizard.module_pages}
         states = dict(wizard.profile.entries)
         self.assertEqual(page_modules, {"browsers", "new-apps"})
+        self.assertNotIn("base", wizard.state.app_modules)
+        self.assertNotIn("base", wizard.state.apps)
         self.assertFalse(states["browsers"])
         self.assertFalse(states["new-apps"])
+
+    def test_base_package_entries_are_not_optional_or_rewritten(self) -> None:
+        tempdir, root = self.make_project()
+        self.addCleanup(tempdir.cleanup)
+        wizard = Wizard(root)
+        self.addCleanup(wizard.close)
+        base_path = root / "modules" / "base.yaml"
+        before = base_path.read_text()
+        wizard.state.apps["new-apps"] = {"example-app"}
+
+        project.apply(root, wizard.state, wizard.modules, wizard.profile)
+
+        self.assertEqual(base_path.read_text(), before)
+        self.assertIn(("base", True), project.Profile(root).entries)
 
     def test_optional_repository_visibility_tracks_app_requirements(self) -> None:
         tempdir, root = self.make_project()

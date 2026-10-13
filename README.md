@@ -1,6 +1,6 @@
 # KineticOS Configurator
 
-**Latest RPM version:** `0.2.0-4.fc44` (`KineticOS-Configurator`).
+**Latest RPM version:** `0.2.0-5.fc44` (`KineticOS-Configurator`).
 
 The packaged configurator source is in `source/`; the RPM files are at this repository root.
 
@@ -41,8 +41,9 @@ for normal use**. The current image remains selected by default.
 The wizard provides an app page for every module with selectable apps. Newly
 discovered modules are added to `profile.yaml` disabled automatically; there is
 no module-selection prompt. The baseline `base`, `rpmfusion`, and `terra`
-modules stay enabled by default. An app module is enabled only when at least
-one of its apps is selected. Selecting Brave or Vivaldi enables its vendor repo
+modules stay enabled by default; the base package list is mandatory and is not
+offered as app choices. An app module is enabled only when at least one of its
+apps is selected. Selecting Brave or Vivaldi enables its vendor repo
 command in the browser module's `pre` script before DNF installs the package.
 At the end, if no selected app needs a repository, the configurator offers to
 disable RPM Fusion, Terra, or an already-enabled Brave/Vivaldi repo. RPM Fusion
@@ -62,14 +63,14 @@ These RPMs are for systems running **KineticOS**. Install the built package with
 DNF:
 
 ```bash
-sudo dnf install ./KineticOS-Configurator-0.2.0-4.fc44.noarch.rpm
+sudo dnf install ./KineticOS-Configurator-0.2.0-5.fc44.noarch.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./KineticOS-Configurator-0.2.0-4.fc44.noarch.rpm
-sudo ki install ./KineticOS-Configurator-0.2.0-4.fc44.noarch.rpm
+sudo kinpkg install ./KineticOS-Configurator-0.2.0-5.fc44.noarch.rpm
+sudo ki install ./KineticOS-Configurator-0.2.0-5.fc44.noarch.rpm
 ```
 
 Do not install this package with `rpm-ostree`.

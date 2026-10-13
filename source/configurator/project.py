@@ -321,6 +321,9 @@ def apply(
     entries = resolve(profile, selection)
     chosen_apps = selection.chosen()
     for name, on in entries:
+        if name == "base":
+            # Base is mandatory, not an app-selection module. Preserve its package list.
+            continue
         module = modules.get(name)
         if module is None:
             continue
