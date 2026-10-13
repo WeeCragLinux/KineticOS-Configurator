@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QRadioButton
+from PySide6.QtCore import QEventLoop, QTimer
+from PySide6.QtWidgets import QApplication, QLabel, QRadioButton
 
 from configurator import project
-from configurator.app import BASE_DESCRIPTIONS, Wizard
+from configurator.app import BASE_DESCRIPTIONS, CommandDialog, Wizard
 
 
 class WizardTests(unittest.TestCase):
@@ -72,14 +74,55 @@ class WizardTests(unittest.TestCase):
         self.assertFalse(states["browsers"])
         self.assertFalse(states["new-apps"])
 
-    def test_review_page_displays_missing_tools_disclaimer(self) -> None:
+    def test_review_page_does_not_display_obsolete_tools_warning(self) -> None:
         tempdir, root = self.make_project()
         self.addCleanup(tempdir.cleanup)
         wizard = Wizard(root)
         self.addCleanup(wizard.close)
 
-        disclaimer = wizard.review_page.disclaimer.text()
-        self.assertIn("does not include a file manager or screenshot tool", disclaimer)
+        page_text = " ".join(
+            label.text() for label in wizard.review_page.findChildren(QLabel)
+        )
+        self.assertNotIn("file manager", page_text.lower())
+        self.assertNotIn("screenshot tool", page_text.lower())
+
+    def test_command_dialog_yes_no_buttons_answer_flatpak_prompt(self) -> None:
+        for button_name, response in (("yes_button", "y"), ("no_button", "n")):
+            with self.subTest(response=response):
+                script = (
+                    "import sys\n"
+                    "print('Apply these changes to your user Flatpak installation? [y/N]', "
+                    "end='', flush=True)\n"
+                    "print('RECEIVED=' + input())\n"
+                )
+                dialog = CommandDialog("Test build", [sys.executable, "-u", "-c", script])
+                loop = QEventLoop()
+                timeout = QTimer()
+                timeout.setSingleShot(True)
+                timed_out = []
+
+                def click_response() -> None:
+                    if not dialog.prompt_controls.isHidden():
+                        getattr(dialog, button_name).click()
+
+                def stop_timed_out_process() -> None:
+                    timed_out.append(True)
+                    dialog.process.kill()
+                    loop.quit()
+
+                dialog.process.readyReadStandardOutput.connect(click_response)
+                dialog.process.finished.connect(loop.quit)
+                timeout.timeout.connect(stop_timed_out_process)
+                dialog.process.start(sys.executable, ["-u", "-c", script])
+                timeout.start(5000)
+                loop.exec()
+                timeout.stop()
+                dialog.read_output()
+
+                self.assertFalse(timed_out, "The child process did not receive a response")
+                self.assertEqual(dialog.process.exitCode(), 0)
+                self.assertIn(f"RECEIVED={response}", dialog.output.toPlainText())
+                dialog.close()
 
     def test_removal_choices_are_visible_and_can_be_disabled_on_final_options_page(self) -> None:
         tempdir, root = self.make_project()

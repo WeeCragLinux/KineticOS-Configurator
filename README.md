@@ -1,7 +1,7 @@
 # KineticOS Configurator
 
 **Latest RPM version:**
-[`0.2.0-7.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.2.0-7)
+[`0.2.0-8.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.2.0-8)
 (`KineticOS-Configurator`).
 
 The packaged configurator source is in `source/`; the RPM files are at this repository root.
@@ -57,7 +57,9 @@ unchecked preserves that repo's current state. The configurator writes `profile.
 and `modules/*.yaml`, runs `dcli-bootc gen`, and offers to run
 `dcli-bootc build`. The build does not switch deployments automatically; after
 a successful build, the app separately asks whether to switch to the new image
-and reboot.
+and reboot. If the build asks whether to apply changes to the current user's
+Flatpak installation, choose **Yes** or **No** in the build window; the app
+does not apply those changes automatically.
 
 Requires Python 3, PySide6, Git, and `dcli-bootc` (the latter is needed for
 generation/build; Git is needed to clone or update projects).
@@ -69,14 +71,14 @@ These RPMs are for systems running **KineticOS**. Download the binary RPM from t
 then install it with DNF:
 
 ```bash
-sudo dnf install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
+sudo dnf install ./KineticOS-Configurator-0.2.0-8.fc44.noarch.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
-sudo ki install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
+sudo kinpkg install ./KineticOS-Configurator-0.2.0-8.fc44.noarch.rpm
+sudo ki install ./KineticOS-Configurator-0.2.0-8.fc44.noarch.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
@@ -187,8 +189,3 @@ one-line `base_image:` edit above always works regardless.
 This project is licensed under the [MIT License](LICENSE). It covers this
 repository's original content; Kineticos, dcli-bootc, and third-party packages
 and repositories remain under their own terms.
-
-## Important image note
-
-This image does not include a file manager or screenshot tool. Install them
-separately if you need them.

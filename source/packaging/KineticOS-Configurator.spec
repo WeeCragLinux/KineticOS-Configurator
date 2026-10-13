@@ -1,6 +1,6 @@
 Name:           KineticOS-Configurator
 Version:        0.2.0
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        KineticOS Image Configurator
 License:        MIT
 URL:            https://github.com/WeeCragLinux/kinetic-image-builder
@@ -56,6 +56,8 @@ python3 -m unittest discover -s tests -v
 %license %{_docdir}/%{name}/LICENSE
 
 %changelog
+* Tue Oct 13 2026 Kineticos Image Builder contributors - 0.2.0-8
+- Add Yes/No controls for the user Flatpak build prompt and remove the obsolete image warning
 * Tue Oct 13 2026 Kineticos Image Builder contributors - 0.2.0-7
 - Make package removals opt-in and selectable in the configurator
 * Tue Oct 13 2026 Kineticos Image Builder contributors - 0.2.0-6

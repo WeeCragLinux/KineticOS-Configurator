@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QMessageBox,
     QPlainTextEdit,
@@ -237,15 +238,6 @@ class ReviewPage(Page):
         self.text = QPlainTextEdit()
         self.text.setReadOnly(True)
         self.body_layout.addWidget(self.text)
-        self.disclaimer = QLabel(
-            "Important: This image does not include a file manager or screenshot tool. "
-            "Install them separately if you need them.",
-            self,
-        )
-        self.disclaimer.setWordWrap(True)
-        self.disclaimer.setStyleSheet("font-weight: 700;")
-        self.body_layout.addWidget(self.disclaimer)
-
     def initializePage(self) -> None:
         self.text.setPlainText(summary(self.wz))
 
@@ -281,10 +273,21 @@ class CommandDialog(QDialog):
         self.success = False
         self.output = QPlainTextEdit(self)
         self.output.setReadOnly(True)
+        self.prompt_controls = QWidget(self)
+        prompt_layout = QHBoxLayout(self.prompt_controls)
+        prompt_layout.setContentsMargins(0, 0, 0, 0)
+        prompt_layout.addWidget(QLabel("Apply these changes to your user Flatpak installation?"))
+        self.yes_button = QPushButton("Yes", self.prompt_controls)
+        self.no_button = QPushButton("No", self.prompt_controls)
+        prompt_layout.addWidget(self.yes_button)
+        prompt_layout.addWidget(self.no_button)
+        self.prompt_controls.hide()
+        self._answered_flatpak_prompts = 0
         self.cancel_button = QPushButton("Cancel", self)
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Command output:"))
         layout.addWidget(self.output)
+        layout.addWidget(self.prompt_controls)
         layout.addWidget(self.cancel_button)
 
         self.process = QProcess(self)
@@ -292,6 +295,8 @@ class CommandDialog(QDialog):
         self.process.readyReadStandardOutput.connect(self.read_output)
         self.process.finished.connect(self.on_process_finished)
         self.process.errorOccurred.connect(self.process_error)
+        self.yes_button.clicked.connect(lambda: self.answer_prompt("y"))
+        self.no_button.clicked.connect(lambda: self.answer_prompt("n"))
         self.cancel_button.clicked.connect(self.cancel_or_close)
         self.command = command
 
@@ -306,18 +311,40 @@ class CommandDialog(QDialog):
             self.output.moveCursor(QTextCursor.MoveOperation.End)
             self.output.insertPlainText(text)
             self.output.ensureCursorVisible()
+            self.update_prompt_controls()
+
+    def update_prompt_controls(self) -> None:
+        output = self.output.toPlainText().lower()
+        prompt = "apply these changes to your user flatpak installation?"
+        prompt_count = output.count(prompt)
+        show_prompt = (
+            self.process.state() == QProcess.ProcessState.Running
+            and prompt_count > self._answered_flatpak_prompts
+        )
+        self.prompt_controls.setVisible(show_prompt)
+
+    def answer_prompt(self, answer: str) -> None:
+        if self.process.state() != QProcess.ProcessState.Running:
+            return
+        self.process.write(f"{answer}\n".encode())
+        output = self.output.toPlainText().lower()
+        prompt = "apply these changes to your user flatpak installation?"
+        self._answered_flatpak_prompts = output.count(prompt)
+        self.prompt_controls.hide()
 
     def on_process_finished(self, exit_code: int, _exit_status: QProcess.ExitStatus) -> None:
         self.read_output()
         self.success = (
             exit_code == 0 and _exit_status == QProcess.ExitStatus.NormalExit
         )
+        self.prompt_controls.hide()
         self.cancel_button.setText("Close")
 
     def process_error(self, error: QProcess.ProcessError) -> None:
         if error == QProcess.ProcessError.FailedToStart:
             self.output.appendPlainText("Could not start command. Is dcli-bootc installed?")
             self.success = False
+            self.prompt_controls.hide()
             self.cancel_button.setText("Close")
 
     def cancel_or_close(self) -> None:
