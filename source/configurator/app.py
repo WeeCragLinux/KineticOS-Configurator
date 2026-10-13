@@ -221,6 +221,14 @@ class ReviewPage(Page):
         self.text = QPlainTextEdit()
         self.text.setReadOnly(True)
         self.body_layout.addWidget(self.text)
+        self.disclaimer = QLabel(
+            "Important: This image does not include a file manager or screenshot tool. "
+            "Install them separately if you need them.",
+            self,
+        )
+        self.disclaimer.setWordWrap(True)
+        self.disclaimer.setStyleSheet("font-weight: 700;")
+        self.body_layout.addWidget(self.disclaimer)
 
     def initializePage(self) -> None:
         self.text.setPlainText(summary(self.wz))

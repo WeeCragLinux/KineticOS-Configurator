@@ -181,3 +181,8 @@ one-line `base_image:` edit above always works regardless.
 This project is licensed under the [MIT License](LICENSE). It covers this
 repository's original content; Kineticos, dcli-bootc, and third-party packages
 and repositories remain under their own terms.
+
+## Important image note
+
+This image does not include a file manager or screenshot tool. Install them
+separately if you need them.

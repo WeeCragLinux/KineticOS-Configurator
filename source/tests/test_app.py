@@ -72,6 +72,15 @@ class WizardTests(unittest.TestCase):
         self.assertFalse(states["browsers"])
         self.assertFalse(states["new-apps"])
 
+    def test_review_page_displays_missing_tools_disclaimer(self) -> None:
+        tempdir, root = self.make_project()
+        self.addCleanup(tempdir.cleanup)
+        wizard = Wizard(root)
+        self.addCleanup(wizard.close)
+
+        disclaimer = wizard.review_page.disclaimer.text()
+        self.assertIn("does not include a file manager or screenshot tool", disclaimer)
+
     def test_base_package_entries_are_not_optional_or_rewritten(self) -> None:
         tempdir, root = self.make_project()
         self.addCleanup(tempdir.cleanup)
