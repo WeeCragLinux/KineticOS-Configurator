@@ -20,7 +20,7 @@ BASE_IMAGES = (
 
 BASELINE_MODULES = ("base", "rpmfusion", "terra")
 
-APP_SECTIONS = ("packages", "flatpaks", "local_rpms")
+APP_SECTIONS = ("packages", "flatpaks", "local_rpms", "remove")
 RPMFUSION_APPS = frozenset({"vlc", "mpv", "steam", "lutris", "discord"})
 TERRA_APPS = frozenset({"terra-mangohud"})
 
@@ -78,9 +78,16 @@ class Selection:
     brave_repo_enabled: bool = False
     vivaldi_repo_enabled: bool = False
     app_modules: set[str] = field(default_factory=set)
+    removal_apps: dict[str, set[str]] = field(default_factory=dict)
+    disable_removals: bool = False
 
     def chosen(self) -> set[str]:
-        return set().union(*self.apps.values())
+        return set().union(
+            *(
+                selected - self.removal_apps.get(module_name, set())
+                for module_name, selected in self.apps.items()
+            )
+        )
 
 
 def iter_items(lines: list[str]):
@@ -258,6 +265,11 @@ def questions(selection: Selection) -> list[str]:
         asked.append("rpmfusion")
     if not chosen & TERRA_APPS:
         asked.append("terra")
+    if any(
+        selection.apps.get(module_name, set()) & removal_names
+        for module_name, removal_names in selection.removal_apps.items()
+    ):
+        asked.append("removals")
     if not chosen & BROWSER_REPO_APPS["brave"] and selection.brave_repo_enabled:
         asked.append("brave")
     if not chosen & BROWSER_REPO_APPS["vivaldi"] and selection.vivaldi_repo_enabled:
@@ -276,7 +288,10 @@ def resolve(profile: Profile, selection: Selection) -> list[tuple[str, bool]]:
         elif name == "terra":
             on = not (selection.disable_terra and "terra" in asked)
         elif name in selection.app_modules:
-            on = bool(selection.apps.get(name))
+            selected = selection.apps.get(name, set())
+            selected_removals = selected & selection.removal_apps.get(name, set())
+            selected_installs = selected - selection.removal_apps.get(name, set())
+            on = bool(selected_installs or (selected_removals and not selection.disable_removals))
         else:
             on = was_enabled
         result.append((name, on))
@@ -330,6 +345,8 @@ def apply(
         if not module.apps:
             continue
         chosen = selection.apps.get(name, set()) if on else set()
+        if selection.disable_removals:
+            chosen = chosen - selection.removal_apps.get(name, set())
         lines = list(module.lines)
         for app in module.apps:
             wanted = app.name in chosen

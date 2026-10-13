@@ -81,6 +81,34 @@ class WizardTests(unittest.TestCase):
         disclaimer = wizard.review_page.disclaimer.text()
         self.assertIn("does not include a file manager or screenshot tool", disclaimer)
 
+    def test_removal_choices_are_visible_and_can_be_disabled_on_final_options_page(self) -> None:
+        tempdir, root = self.make_project()
+        self.addCleanup(tempdir.cleanup)
+        (root / "modules" / "removals.yaml").write_text(
+            "description: Optional removal choices\n"
+            "packages: []\n"
+            "remove:\n"
+            "  #- dolphin\n"
+            "  #- spectacle\n"
+        )
+        wizard = Wizard(root)
+        self.addCleanup(wizard.close)
+
+        page = next(page for page in wizard.module_pages if page.module.name == "removals")
+        self.assertEqual([box.text() for _, box in page.boxes], ["Remove dolphin", "Remove spectacle"])
+        self.assertTrue(all(not box.isChecked() for _, box in page.boxes))
+        self.assertFalse(dict(project.resolve(wizard.profile, wizard.state))["removals"])
+
+        page.boxes[0][1].setChecked(True)
+        self.assertTrue(dict(project.resolve(wizard.profile, wizard.state))["removals"])
+        wizard.optional_page.initializePage()
+        self.assertFalse(wizard.optional_page.removals_box.isHidden())
+        self.assertFalse(wizard.optional_page.removals_box.isChecked())
+
+        wizard.optional_page.removals_box.setChecked(True)
+        self.assertTrue(wizard.state.disable_removals)
+        self.assertFalse(dict(project.resolve(wizard.profile, wizard.state))["removals"])
+
     def test_base_package_entries_are_not_optional_or_rewritten(self) -> None:
         tempdir, root = self.make_project()
         self.addCleanup(tempdir.cleanup)

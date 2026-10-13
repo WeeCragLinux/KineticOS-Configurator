@@ -1,7 +1,7 @@
 # KineticOS Configurator
 
 **Latest RPM version:**
-[`0.2.0-6.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.2.0-6)
+[`0.2.0-7.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.2.0-7)
 (`KineticOS-Configurator`).
 
 The packaged configurator source is in `source/`; the RPM files are at this repository root.
@@ -44,9 +44,12 @@ The wizard provides an app page for every module with selectable apps. Newly
 discovered modules are added to `profile.yaml` disabled automatically; there is
 no module-selection prompt. The baseline `base`, `rpmfusion`, and `terra`
 modules stay enabled by default; the base package list is mandatory and is not
-offered as app choices. An app module is enabled only when at least one of its
-apps is selected. Selecting Brave or Vivaldi enables its vendor repo
-command in the browser module's `pre` script before DNF installs the package.
+offered as app choices. An app or removal module is enabled only when at least
+one of its choices is selected. The `removals` module starts disabled, and each
+removal is opt-in; if none are selected, the module stays disabled. When
+removals are selected, the final options page lets users disable them all.
+Selecting Brave or Vivaldi enables its vendor repo command in the browser
+module's `pre` script before DNF installs the package.
 At the end, if no selected app needs a repository, the configurator offers to
 disable RPM Fusion, Terra, or an already-enabled Brave/Vivaldi repo. RPM Fusion
 and Terra stay enabled unless explicitly disabled; leaving a vendor-repo option
@@ -66,14 +69,14 @@ These RPMs are for systems running **KineticOS**. Download the binary RPM from t
 then install it with DNF:
 
 ```bash
-sudo dnf install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
+sudo dnf install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
-sudo ki install ./KineticOS-Configurator-0.2.0-6.fc44.noarch.rpm
+sudo kinpkg install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
+sudo ki install ./KineticOS-Configurator-0.2.0-7.fc44.noarch.rpm
 ```
 
 Do not install this package with `rpm-ostree`.

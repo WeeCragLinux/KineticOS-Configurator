@@ -162,6 +162,49 @@ class ProjectTests(unittest.TestCase):
             ],
         )
 
+    def test_removals_are_opt_in_per_package_and_can_be_disabled_at_the_end(self) -> None:
+        root = self.make_project()
+        profile_path = root / "profile.yaml"
+        profile_path.write_text(profile_path.read_text() + "- removals\n")
+        removals_path = root / "modules" / "removals.yaml"
+        removals_path.write_text(
+            "description: optional package removals\n"
+            "packages: []\n"
+            "remove:\n"
+            "  #- dolphin\n"
+            "  #- spectacle\n"
+        )
+        profile = project.Profile(root)
+        modules = project.load_modules(root)
+        profile.ensure_modules(modules)
+        selection = project.Selection(
+            base_image=profile.base_image,
+            app_modules={"apps", "removals"},
+            removal_apps={"removals": {"dolphin", "spectacle"}},
+        )
+
+        # An enabled profile entry alone must not enable an empty removals module.
+        self.assertFalse(dict(project.resolve(profile, selection))["removals"])
+        self.assertNotIn("removals", project.questions(selection))
+
+        selection.apps["removals"] = {"dolphin"}
+        self.assertTrue(dict(project.resolve(profile, selection))["removals"])
+        self.assertIn("removals", project.questions(selection))
+        self.assertNotIn("dolphin", selection.chosen())
+        project.apply(root, selection, modules, profile)
+
+        self.assertIn("  - dolphin\n", removals_path.read_text())
+        self.assertIn("  #- spectacle\n", removals_path.read_text())
+        self.assertIn(("removals", True), project.Profile(root).entries)
+
+        selection.disable_removals = True
+        project.apply(root, selection, modules, project.Profile(root))
+
+        self.assertFalse(dict(project.resolve(project.Profile(root), selection))["removals"])
+        self.assertIn("  #- dolphin\n", removals_path.read_text())
+        self.assertIn("  #- spectacle\n", removals_path.read_text())
+        self.assertIn(("removals", False), project.Profile(root).entries)
+
     def test_required_repositories_cannot_be_disabled(self) -> None:
         root = self.make_project()
         profile = project.Profile(root)

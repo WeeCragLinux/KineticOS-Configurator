@@ -37,6 +37,8 @@ BASE_DESCRIPTIONS = {
 
 
 def app_label(app: project.App) -> str:
+    if app.section == "remove":
+        return f"Remove {app.name}"
     if app.section == "flatpaks":
         return f"{app.name}  (Flatpak, installed per user)"
     if app.section == "local_rpms":
@@ -134,13 +136,18 @@ class BasePage(Page):
 
 class ModulePage(Page):
     def __init__(self, wizard: Wizard, module: project.Module):
+        removal_page = all(app.section == "remove" for app in module.apps)
         super().__init__(
             wizard,
             "KineticOS Image Configurator",
-            "Choose the software to include in your image.",
+            (
+                "Choose preinstalled packages to remove from your image."
+                if removal_page
+                else "Choose the software to include in your image."
+            ),
         )
         self.module = module
-        self.add_section_heading(module.name)
+        self.add_section_heading("Packages to remove" if removal_page else module.name)
         description = QLabel(module.description, self)
         description.setWordWrap(True)
         self.body_layout.addWidget(description)
@@ -156,6 +163,8 @@ class ModulePage(Page):
 
     def sync(self, *_) -> None:
         selected = {app.name for app, box in self.boxes if box.isChecked()}
+        if self.module.name in self.wz.state.removal_apps:
+            self.wz.state.disable_removals = False
         if selected:
             self.wz.state.apps[self.module.name] = selected
         else:
@@ -167,9 +176,9 @@ class OptionalPage(Page):
         super().__init__(
             wizard,
             "KineticOS Image Configurator",
-            "Choose whether to keep optional package repositories enabled.",
+            "Review optional repositories and selected package removals.",
         )
-        self.add_section_heading("Optional repositories")
+        self.add_section_heading("Optional repositories and removals")
         description = QLabel(
             "Keep these repositories enabled, or disable ones that no selected app needs.", self
         )
@@ -177,16 +186,21 @@ class OptionalPage(Page):
         self.body_layout.addWidget(description)
         self.rpm_box = QCheckBox("Disable RPM Fusion (free and nonfree repos)")
         self.terra_box = QCheckBox("Disable Terra (repos only)")
+        self.removals_box = QCheckBox("Disable the selected package removals")
         self.brave_box = QCheckBox("Disable the Brave browser repository")
         self.vivaldi_box = QCheckBox("Disable the Vivaldi repository")
         self.rpm_box.toggled.connect(lambda c: setattr(self.wz.state, "disable_rpmfusion", c))
         self.terra_box.toggled.connect(lambda c: setattr(self.wz.state, "disable_terra", c))
+        self.removals_box.toggled.connect(
+            lambda c: setattr(self.wz.state, "disable_removals", c)
+        )
         self.brave_box.toggled.connect(lambda c: setattr(self.wz.state, "disable_brave_repo", c))
         self.vivaldi_box.toggled.connect(
             lambda c: setattr(self.wz.state, "disable_vivaldi_repo", c)
         )
         self.body_layout.addWidget(self.rpm_box)
         self.body_layout.addWidget(self.terra_box)
+        self.body_layout.addWidget(self.removals_box)
         self.body_layout.addWidget(self.brave_box)
         self.body_layout.addWidget(self.vivaldi_box)
         self.body_layout.addStretch()
@@ -197,6 +211,8 @@ class OptionalPage(Page):
         self.rpm_box.setVisible("rpmfusion" in asked)
         self.terra_box.setChecked(self.wz.state.disable_terra)
         self.terra_box.setVisible("terra" in asked)
+        self.removals_box.setChecked(self.wz.state.disable_removals)
+        self.removals_box.setVisible("removals" in asked)
         self.brave_box.setChecked(self.wz.state.disable_brave_repo)
         self.brave_box.setVisible("brave" in asked)
         self.vivaldi_box.setChecked(self.wz.state.disable_vivaldi_repo)
@@ -242,7 +258,16 @@ def summary(wizard: Wizard) -> str:
             lines.append(f"off   {name}")
             continue
         apps = sorted(state.apps.get(name, ()))
-        lines.append(f"on    {name}: {', '.join(apps) if apps else 'default'}")
+        module = wizard.modules.get(name)
+        removal_names = {
+            app.name for app in module.apps if app.section == "remove"
+        } if module else set()
+        display_apps = [
+            f"remove {app}" if app in removal_names else app for app in apps
+        ]
+        lines.append(
+            f"on    {name}: {', '.join(display_apps) if display_apps else 'default'}"
+        )
     return "\n".join(lines)
 
 
@@ -336,6 +361,11 @@ class Wizard(QWizard):
             },
             app_modules={
                 name for name, module in self.modules.items() if name != "base" and module.apps
+            },
+            removal_apps={
+                name: {app.name for app in module.apps if app.section == "remove"}
+                for name, module in self.modules.items()
+                if any(app.section == "remove" for app in module.apps)
             },
             brave_repo_enabled=project.repo_command_enabled(
                 self.modules.get("browsers"), "brave"
