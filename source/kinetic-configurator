@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 if not (ROOT / "configurator").is_dir():
     for installed_root in (
+        Path("/usr/share/kinetic-configurator"),
         Path("/usr/share/KineticOS-Configurator"),
         Path("/usr/share/kineticos-image-builder"),
     ):

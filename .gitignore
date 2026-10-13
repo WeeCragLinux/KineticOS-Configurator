@@ -1,0 +1,10 @@
+# Build artefacts
+build/
+gtk/build/
+gtk/build-*/
+result/
+*.tar.gz
+
+# Earlier Python configurator (source/), kept for reference only
+__pycache__/
+*.py[cod]

@@ -1,0 +1,162 @@
+/* KineticOS Configurator (GTK): follows the desktop theme.
+
+   Colours come from libadwaita's named colours, which libadwaita resolves from the desktop
+   (dark mode and accent colour) and which the user's ~/.config/gtk-4.0/gtk.css overrides
+   (Noctalia and similar generators); ThemeWatcher re-reads that file when it changes, so the
+   app re-themes live. Only the status colours are fixed, with light and dark variants
+   switched by the .dark class on the main window. Loaded at APPLICATION priority, so the
+   user's gtk.css still wins. */
+
+@define-color kc_bg @window_bg_color;
+@define-color kc_fg @window_fg_color;
+@define-color kc_accent @accent_bg_color;
+@define-color kc_on_accent @accent_fg_color;
+@define-color kc_surface color-mix(in srgb, @kc_fg 4%, @kc_bg);
+@define-color kc_sunken color-mix(in srgb, @kc_fg 2%, @kc_bg);
+@define-color kc_border color-mix(in srgb, @kc_fg 16%, @kc_bg);
+@define-color kc_hover color-mix(in srgb, @kc_fg 8%, @kc_bg);
+@define-color kc_muted color-mix(in srgb, @kc_fg 68%, @kc_bg);
+@define-color kc_subtle color-mix(in srgb, @kc_fg 42%, @kc_bg);
+
+@define-color kc_negative #b42318;
+@define-color kc_neutral #a15c07;
+@define-color kc_positive #067647;
+@define-color kc_negative_dark #f97066;
+@define-color kc_neutral_dark #fdb022;
+@define-color kc_positive_dark #47cd89;
+
+/* --- type ------------------------------------------------------------------- */
+
+/* The font family for these classes is also set from the desktop monospace font. */
+.mono, .wordmark, .section-label, .kc-chip {
+  font-family: "Adwaita Mono", "JetBrains Mono", monospace;
+}
+.mono { font-feature-settings: "tnum"; }
+.muted { color: @kc_muted; }
+.subtle { color: @kc_subtle; }
+.small { font-size: 0.85em; }
+
+.section-label {
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: @kc_muted;
+}
+
+/* --- brand ------------------------------------------------------------------ */
+
+.wordmark {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* --- layout ----------------------------------------------------------------- */
+
+/* Square window corners (libadwaita's default is 15px). Compositors that draw their own
+   rounded borders clip the window to them; rounding here as well leaves a gap where the
+   two radii differ. */
+:root { --window-radius: 0px; }
+
+.body { padding: 12px; }
+
+.kc-card {
+  background-color: @kc_surface;
+  border: 1px solid @kc_border;
+  border-radius: 10px;
+  padding: 14px;
+}
+.kc-card.flush { padding: 0; }
+.kc-card .card-head { padding: 12px 14px 8px 14px; }
+
+.kc-scroller > viewport { background: none; }
+
+/* --- buttons ---------------------------------------------------------------- */
+
+button.kc-primary {
+  background-image: none;
+  background-color: @kc_accent;
+  color: @kc_on_accent;
+  border-color: @kc_accent;
+  font-weight: 600;
+}
+button.kc-primary:hover { background-color: color-mix(in srgb, @kc_accent 85%, @kc_fg); }
+button.kc-primary:disabled { opacity: 0.45; }
+
+button.kc-small {
+  min-height: 0;
+  padding: 2px 10px;
+  font-size: 0.85em;
+}
+
+/* --- status: chips and notices ---------------------------------------------- */
+
+.kc-chip {
+  padding: 1px 8px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.kc-chip.positive { color: @kc_positive; background-color: alpha(@kc_positive, 0.12); }
+.kc-chip.neutral { color: @kc_neutral; background-color: alpha(@kc_neutral, 0.12); }
+.kc-chip.negative { color: @kc_negative; background-color: alpha(@kc_negative, 0.12); }
+window.dark .kc-chip.positive { color: @kc_positive_dark; background-color: alpha(@kc_positive_dark, 0.12); }
+window.dark .kc-chip.neutral { color: @kc_neutral_dark; background-color: alpha(@kc_neutral_dark, 0.12); }
+window.dark .kc-chip.negative { color: @kc_negative_dark; background-color: alpha(@kc_negative_dark, 0.12); }
+
+.kc-notice {
+  margin: 0 0 16px 0;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid @kc_border;
+  background-color: @kc_surface;
+  color: @kc_fg;
+  box-shadow: 0 2px 10px alpha(black, 0.18);
+}
+.kc-notice.positive {
+  color: @kc_positive;
+  border-color: color-mix(in srgb, @kc_positive 45%, @kc_bg);
+  background-color: color-mix(in srgb, @kc_positive 8%, @kc_bg);
+}
+.kc-notice.neutral {
+  color: @kc_neutral;
+  border-color: color-mix(in srgb, @kc_neutral 45%, @kc_bg);
+  background-color: color-mix(in srgb, @kc_neutral 8%, @kc_bg);
+}
+.kc-notice.negative {
+  color: @kc_negative;
+  border-color: color-mix(in srgb, @kc_negative 45%, @kc_bg);
+  background-color: color-mix(in srgb, @kc_negative 8%, @kc_bg);
+}
+window.dark .kc-notice.positive {
+  color: @kc_positive_dark;
+  border-color: color-mix(in srgb, @kc_positive_dark 45%, @kc_bg);
+  background-color: color-mix(in srgb, @kc_positive_dark 8%, @kc_bg);
+}
+window.dark .kc-notice.neutral {
+  color: @kc_neutral_dark;
+  border-color: color-mix(in srgb, @kc_neutral_dark 45%, @kc_bg);
+  background-color: color-mix(in srgb, @kc_neutral_dark 8%, @kc_bg);
+}
+window.dark .kc-notice.negative {
+  color: @kc_negative_dark;
+  border-color: color-mix(in srgb, @kc_negative_dark 45%, @kc_bg);
+  background-color: color-mix(in srgb, @kc_negative_dark 8%, @kc_bg);
+}
+
+/* --- misc ------------------------------------------------------------------- */
+
+.dialog-body { padding: 18px; }
+
+.console-view, .console-view > text {
+  font-family: "Adwaita Mono", "JetBrains Mono", monospace;
+  background-color: @kc_sunken;
+  color: @kc_fg;
+}
+
+textview.help-view,
+textview.help-view > text {
+  background-color: @kc_bg;
+  color: @kc_fg;
+}

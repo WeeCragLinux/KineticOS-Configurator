@@ -7,7 +7,8 @@ from hashlib import sha1
 from pathlib import Path
 from unittest.mock import patch
 
-from configurator import workspace
+from configurator.core import workspace
+from configurator.core.settings import Settings
 
 
 class WorkspaceTests(unittest.TestCase):
@@ -30,13 +31,9 @@ class WorkspaceTests(unittest.TestCase):
         )
 
     def test_remembers_project_location(self) -> None:
-        config_dir = self.root / "config"
-        with (
-            patch.object(workspace, "CONFIG_ROOT", config_dir),
-            patch.object(workspace, "SETTINGS_FILE", config_dir / "settings.json"),
-        ):
-            workspace.save_checkout(self.project)
-            self.assertEqual(workspace.saved_checkout(), self.project.resolve())
+        settings = Settings(self.root / "config" / "settings.ini")
+        workspace.save_checkout(self.project, settings)
+        self.assertEqual(workspace.saved_checkout(settings), self.project.resolve())
 
     def test_clone_does_not_overwrite_existing_non_project(self) -> None:
         worker = workspace.GitWorker("clone", self.root)

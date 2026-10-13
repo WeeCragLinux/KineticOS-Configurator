@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from configurator import project
+from configurator.core import project
 
 
 DEFAULT_IMAGE = "ghcr.io/theblack-don/kineticos:default"

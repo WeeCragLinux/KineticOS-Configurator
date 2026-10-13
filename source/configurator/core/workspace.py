@@ -1,8 +1,12 @@
-"""Clone, select, and update the user's writable image project."""
+"""Clone, select, and update the user's writable image project.
+
+Only the non-widget parts live here (project detection, git operations, choice
+capture/reapply and the `GitWorker` thread). The chooser UI is in
+`configurator/ui/chooser.py`.
+"""
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import subprocess
@@ -11,30 +15,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import QThread, QTimer, Qt, Signal
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QProgressDialog,
-    QPushButton,
-    QSizePolicy,
-    QVBoxLayout,
-    QDialog,
-    QWidget,
-)
+from PySide6.QtCore import QThread, Signal
 
 from . import project
+from .settings import Settings
 
 
 REPOSITORY_URL = "https://github.com/WeeCragLinux/kinetic-image-builder.git"
 PROJECT_DIRECTORY = "kinetic-image-builder"
-CONFIG_ROOT = Path(
-    os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
-) / "kineticos-image-builder"
-SETTINGS_FILE = CONFIG_ROOT / "settings.json"
 
 
 @dataclass
@@ -147,22 +135,17 @@ def backup_path(checkout: Path, operation: str) -> Path:
     return backup
 
 
-def saved_checkout() -> Path | None:
-    try:
-        settings = json.loads(SETTINGS_FILE.read_text())
-        checkout = Path(settings["checkout_path"]).expanduser()
-    except (OSError, ValueError, KeyError, TypeError):
+def saved_checkout(settings: Settings | None = None) -> Path | None:
+    store = settings or Settings()
+    checkout = store.checkout_path
+    if checkout is None:
         return None
     return checkout if is_project(checkout) else None
 
 
-def save_checkout(checkout: Path) -> None:
-    CONFIG_ROOT.mkdir(parents=True, exist_ok=True)
-    temp_file = SETTINGS_FILE.with_suffix(".tmp")
-    temp_file.write_text(
-        json.dumps({"checkout_path": str(checkout.resolve())}, indent=2) + "\n"
-    )
-    temp_file.replace(SETTINGS_FILE)
+def save_checkout(checkout: Path, settings: Settings | None = None) -> None:
+    store = settings or Settings()
+    store.set_checkout_path(checkout)
 
 
 class GitWorker(QThread):
@@ -313,225 +296,3 @@ class GitWorker(QThread):
             detail + f"The previous folder was saved at:\n{backup}",
             str(checkout),
         )
-
-
-class ProjectChooser(QDialog):
-    """Choose an existing project or clone one into a user-selected location."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("KineticOS Image Configurator")
-        self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, False)
-        self.setFixedSize(640, 420)
-        self.checkout: Path | None = None
-        self.saved = saved_checkout()
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        banner = QFrame(self)
-        banner.setObjectName("projectChooserBanner")
-        banner_layout = QVBoxLayout(banner)
-        banner_layout.setContentsMargins(20, 12, 20, 12)
-        banner_layout.setSpacing(4)
-        title = QLabel("Welcome to KineticOS Image Configurator", banner)
-        title.setStyleSheet("font-size: 16px; font-weight: 700;")
-        description = QLabel(
-            "Choose a project to configure, or clone a fresh copy. Projects stay in a "
-            "writable folder you control.",
-            banner,
-        )
-        description.setWordWrap(True)
-        banner_layout.addWidget(title)
-        banner_layout.addWidget(description)
-        banner.setStyleSheet(
-            "QFrame#projectChooserBanner {"
-            " background-color: palette(alternate-base);"
-            " border-bottom: 1px solid palette(mid);"
-            "}"
-            "QFrame#projectChooserBanner QLabel { background: transparent; border: none; }"
-        )
-        layout.addWidget(banner)
-
-        body = QWidget(self)
-        body_layout = QVBoxLayout(body)
-        body_layout.setContentsMargins(18, 14, 18, 12)
-        body_layout.setSpacing(8)
-        layout.addWidget(body, 1)
-
-        if self.saved:
-            saved_title = QLabel("Saved project", body)
-            saved_title.setStyleSheet("font-size: 16px; font-weight: 700;")
-            body_layout.addWidget(saved_title)
-
-            path_label = QLabel(str(self.saved), body)
-            path_label.setWordWrap(True)
-            body_layout.addWidget(path_label)
-
-            open_button = QPushButton("Open saved project", body)
-            open_button.setDefault(True)
-            open_button.clicked.connect(lambda: self.finish_with(self.saved))
-            body_layout.addWidget(open_button)
-
-            update_button = QPushButton("Update full template, keep my choices…", body)
-            update_button.clicked.connect(self.confirm_update)
-            body_layout.addWidget(update_button)
-
-            reset_button = QPushButton("Reset project to a fresh template…", body)
-            reset_button.clicked.connect(self.confirm_reset)
-            body_layout.addWidget(reset_button)
-
-            separator = QFrame(body)
-            separator.setFrameShape(QFrame.Shape.HLine)
-            separator.setFrameShadow(QFrame.Shadow.Sunken)
-            body_layout.addWidget(separator)
-
-        choices = QHBoxLayout()
-        choices.setSpacing(8)
-        clone_button = QPushButton("Clone image project…", body)
-        clone_button.clicked.connect(self.choose_clone)
-        choices.addWidget(clone_button)
-
-        open_existing_button = QPushButton("Open an existing project…", body)
-        open_existing_button.clicked.connect(self.choose_existing)
-        choices.addWidget(open_existing_button)
-        body_layout.addLayout(choices)
-        body_layout.addStretch(1)
-
-        footer = QHBoxLayout()
-        footer.addStretch(1)
-        cancel_button = QPushButton("Cancel", body)
-        cancel_button.clicked.connect(self.reject)
-        footer.addWidget(cancel_button)
-        body_layout.addLayout(footer)
-
-        for button in self.findChildren(QPushButton):
-            button.setSizePolicy(
-                QSizePolicy.Policy.Expanding,
-                QSizePolicy.Policy.Fixed,
-            )
-            button.setMinimumHeight(36)
-
-    def finish_with(self, checkout: Path | None) -> None:
-        if checkout is None or not is_project(checkout):
-            QMessageBox.warning(self, "Project not found", "That folder is not a valid image project.")
-            return
-        try:
-            save_checkout(checkout)
-        except OSError as error:
-            QMessageBox.warning(
-                self,
-                "Project ready, location not saved",
-                f"The project can be opened, but its location could not be remembered:\n{error}",
-            )
-        self.checkout = checkout.resolve()
-        self.accept()
-
-    def choose_existing(self) -> None:
-        initial = str(self.saved or Path.home())
-        selected = QFileDialog.getExistingDirectory(self, "Open image project", initial)
-        if not selected:
-            return
-        path = Path(selected).expanduser()
-        if not is_project(path):
-            QMessageBox.warning(
-                self,
-                "Not an image project",
-                "Choose a folder containing profile.yaml and a modules/ directory.",
-            )
-            return
-        self.finish_with(path)
-
-    def choose_clone(self) -> None:
-        if shutil.which("git") is None:
-            QMessageBox.critical(self, "Git is required", "Install Git before cloning an image project.")
-            return
-        initial = Path.home() / "Projects"
-        if not initial.is_dir():
-            initial = Path.home()
-        parent = QFileDialog.getExistingDirectory(
-            self, "Choose where to store the image project", str(initial)
-        )
-        if not parent:
-            return
-        self.run_git("clone", Path(parent).expanduser() / PROJECT_DIRECTORY)
-
-    def run_git(self, operation: str, path: Path) -> None:
-        message = (
-            f"Cloning the image project into:\n{path}"
-            if operation == "clone"
-            else (
-                f"Replacing the project with a fresh upstream clone:\n{path}"
-                if operation in {"reset", "update"}
-                else f"Running project operation in:\n{path}"
-            )
-        )
-        progress = QProgressDialog(message, "", 0, 0, self)
-        progress.setWindowTitle(
-            "Cloning project…"
-            if operation == "clone"
-            else (
-                "Resetting project…"
-                if operation == "reset"
-                else "Updating project…"
-            )
-        )
-        progress.setCancelButton(None)
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
-
-        outcome: list[tuple[bool, str, str]] = []
-        worker = GitWorker(operation, path)
-
-        def completed(success: bool, detail: str, checkout: str) -> None:
-            outcome.append((success, detail, checkout))
-            progress.accept()
-
-        worker.completed.connect(completed)
-        QTimer.singleShot(0, worker.start)
-        progress.exec()
-        worker.wait()
-
-        if not outcome:
-            QMessageBox.warning(self, "Project operation failed", "Git ended without a result.")
-            return
-        success, detail, checkout = outcome[0]
-        if not success:
-            QMessageBox.warning(self, "Project operation failed", detail)
-            return
-        if operation in {"reset", "update"}:
-            title = "Project reset" if operation == "reset" else "Project updated"
-            QMessageBox.information(self, title, detail)
-        self.finish_with(Path(checkout))
-
-    def confirm_update(self) -> None:
-        if self.saved is None:
-            return
-        answer = QMessageBox.warning(
-            self,
-            "Update the full project template?",
-            "This replaces the selected project with a fresh upstream clone. The current base "
-            "image, module, app, and list-item choices will be reapplied where those entries "
-            "still exist. Manual edits to scripts and other files will be replaced.\n\n"
-            "A complete backup of the current folder will be created beside it first. Continue?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if answer == QMessageBox.StandardButton.Yes:
-            self.run_git("update", self.saved)
-
-    def confirm_reset(self) -> None:
-        if self.saved is None:
-            return
-        answer = QMessageBox.warning(
-            self,
-            "Reset project to a fresh template?",
-            "This replaces the selected project with a fresh upstream clone and discards all "
-            "current choices and local edits. A complete backup of the current folder will be "
-            "created beside it first. Continue?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if answer == QMessageBox.StandardButton.Yes:
-            self.run_git("reset", self.saved)

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.weecraglinux.kinetic-configurator</id>
+  <name>KineticOS Configurator</name>
+  <summary>KineticOS Image Configurator</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+
+  <description>
+    <p>
+      KineticOS Configurator clones, opens, configures, updates, resets, and
+      builds a Kineticos image project. A guided wizard walks through the base
+      image, per-module app selection, optional repositories and removals, then
+      writes profile.yaml and modules/*.yaml and runs dcli-bootc gen.
+    </p>
+    <p>
+      After generation the configurator can run dcli-bootc build and, with
+      confirmation, switch to the new image and reboot. Reset creates a full
+      backup before restoring the selected project to the latest upstream
+      template.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">com.weecraglinux.kinetic-configurator.desktop</launchable>
+
+  <url type="homepage">https://github.com/WeeCragLinux/KineticOS-Configurator</url>
+  <url type="bugtracker">https://github.com/WeeCragLinux/KineticOS-Configurator/issues</url>
+
+  <developer id="com.weecraglinux">
+    <name>WeeCragLinux</name>
+  </developer>
+
+  <provides>
+    <id>kineticos-image-builder.desktop</id>
+  </provides>
+
+  <categories>
+    <category>Development</category>
+  </categories>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.4.0" date="2026-10-13">
+      <description>
+        <p>
+          Rewrite in GTK 4 (gtkmm) and libadwaita, following the GTK Desktop
+          Application Standard: standard window shell, live desktop theming,
+          settings.ini, About dialog and help window. The earlier Python
+          configurator is kept for reference only.
+        </p>
+      </description>
+    </release>
+    <release version="0.3.0" date="2026-10-13">
+      <description>
+        <p>
+          Restyle to the GTK Desktop Application Standard: standard window
+          shell, theming, and settings.ini.
+        </p>
+      </description>
+    </release>
+    <release version="0.2.0" date="2026-10-13">
+      <description>
+        <p>
+          Add Yes/No controls for the user Flatpak build prompt, make package
+          removals opt-in, keep base packages mandatory, and couple browser
+          vendor repositories to app choices.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-10-13">
+      <description>
+        <p>
+          Package the integrated configurator, workspace clone flow, and
+          in-app build actions.
+        </p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,187 @@
+/*
+ * KineticOS Configurator stylesheet.
+ *
+ * Qt style sheets have no colour functions, so every `$token` here is
+ * substituted at runtime by ui/themewatcher.py from the live desktop palette
+ * (see core/theme.py). Only the fixed status colours come from the standard.
+ */
+
+QWidget {
+    color: $kc_fg;
+}
+
+[kc="window"] {
+    background-color: $kc_bg;
+}
+
+[kc="headerbar"] {
+    background-color: $kc_bg;
+}
+
+[kc="body"] {
+    padding: 12px;
+}
+
+[kc="wordmark"] {
+    font-family: $kc_mono_family;
+    font-weight: 600;
+}
+
+[kc="muted"] {
+    color: $kc_muted;
+}
+
+[kc="subtle"] {
+    color: $kc_subtle;
+}
+
+[kc="small"] {
+    font-size: 0.85em;
+}
+
+[kc="mono"] {
+    font-family: $kc_mono_family;
+}
+
+[kc="section-label"] {
+    font-family: $kc_mono_family;
+    font-size: 0.78em;
+    font-weight: 600;
+    color: $kc_muted;
+}
+
+[kc="card"] {
+    background-color: $kc_surface;
+    border: 1px solid $kc_border;
+    border-radius: 10px;
+    padding: 14px;
+}
+
+[kc="card"][flush="true"] {
+    padding: 0;
+}
+
+[kc="card-head"] {
+    padding: 12px 14px 8px 14px;
+}
+
+[kc="sunken"] {
+    background-color: $kc_sunken;
+    border-radius: 4px;
+}
+
+button[kc="primary"] {
+    background-image: none;
+    background-color: $kc_accent_bg;
+    border: 1px solid $kc_accent_bg;
+    color: $kc_accent_fg;
+    font-weight: 600;
+}
+
+button[kc="primary"]:hover {
+    background-color: $kc_accent_hover;
+    border-color: $kc_accent_hover;
+}
+
+button[kc="primary"]:pressed {
+    background-color: $kc_accent_bg;
+    border-color: $kc_accent_bg;
+}
+
+button[kc="small"] {
+    min-height: 0;
+    padding: 2px 10px;
+    font-size: 0.85em;
+}
+
+[kc="chip"] {
+    font-family: $kc_mono_family;
+    font-size: 0.78em;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 6px;
+}
+
+[kc="chip"][status="positive"] {
+    color: $kc_positive;
+    border: 1px solid $kc_positive_border;
+    background-color: $kc_positive_bg;
+}
+
+[kc="chip"][status="neutral"] {
+    color: $kc_neutral;
+    border: 1px solid $kc_neutral_border;
+    background-color: $kc_neutral_bg;
+}
+
+[kc="chip"][status="negative"] {
+    color: $kc_negative;
+    border: 1px solid $kc_negative_border;
+    background-color: $kc_negative_bg;
+}
+
+[kc="notice"] {
+    background-color: $kc_surface;
+    border: 1px solid $kc_border;
+    border-radius: 8px;
+    color: $kc_fg;
+    padding: 9px 16px;
+}
+
+[kc="notice"][status="positive"] {
+    color: $kc_positive;
+    border-color: $kc_positive_border;
+    background-color: $kc_positive_bg;
+}
+
+[kc="notice"][status="neutral"] {
+    color: $kc_neutral;
+    border-color: $kc_neutral_border;
+    background-color: $kc_neutral_bg;
+}
+
+[kc="notice"][status="negative"] {
+    color: $kc_negative;
+    border-color: $kc_negative_border;
+    background-color: $kc_negative_bg;
+}
+
+[kc="tile"] {
+    border-radius: 6px;
+}
+
+[kc="tile"]:hover {
+    background-color: $kc_hover;
+}
+
+QListWidget {
+    background: transparent;
+    border: none;
+}
+
+QListWidget::item:hover {
+    background-color: $kc_hover;
+    border-radius: 8px;
+}
+
+QListWidget::item:selected {
+    background-color: $kc_selected;
+    color: $kc_fg;
+    border-radius: 8px;
+}
+
+QPlainTextEdit[kc="console"] {
+    font-family: $kc_mono_family;
+    background-color: $kc_sunken;
+    border: 1px solid $kc_border;
+    border-radius: 8px;
+}
+
+QSplitter::handle {
+    background: none;
+    border: none;
+}
+
+[kc="dialog-body"] {
+    padding: 18px;
+}

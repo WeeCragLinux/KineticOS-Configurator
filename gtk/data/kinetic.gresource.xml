@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/weecraglinux/kinetic">
+    <file>style.css</file>
+    <!-- Resolved from the repository root through a second -sourcedir. -->
+    <file alias="kinetic-configurator.png">packaging/icons/256x256/kinetic-configurator.png</file>
+    <file alias="HELP.md">HELP.md</file>
+  </gresource>
+</gresources>

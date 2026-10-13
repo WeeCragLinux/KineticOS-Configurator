@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+
+<policyconfig>
+
+  <vendor>WeeCragLinux</vendor>
+  <vendor_url>https://github.com/WeeCragLinux/KineticOS-Configurator</vendor_url>
+
+  <action id="com.weecraglinux.kinetic-configurator.run-helper">
+
+    <description>Run the KineticOS Configurator privileged helper</description>
+    <message>KineticOS Configurator needs administrator privileges to build and switch your image.</message>
+
+    <icon_name>kinetic-configurator</icon_name>
+
+    <defaults>
+      <!-- auth_admin: require authentication every time, no credential caching. -->
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+
+    <!-- Points to the helper binary, not the GUI.
+         The GUI itself never runs as root. -->
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/kinetic-configurator/kinetic-configurator-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">false</annotate>
+
+  </action>
+
+</policyconfig>

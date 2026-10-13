@@ -1,112 +1,195 @@
 # KineticOS Configurator
 
 **Latest RPM version:**
-[`0.2.0-8.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.2.0-8)
-(`KineticOS-Configurator`).
+[`0.4.0-4.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-4)
+(`kinetic-configurator`).
 
-The packaged configurator source is in `source/`; the RPM files are at this repository root.
+KineticOS Configurator is a **GTK 4 (gtkmm) + libadwaita** desktop app that
+clones, configures, updates, resets, and builds a KineticOS bootc image project.
+A guided wizard edits `profile.yaml` and `modules/*.yaml`, runs `dcli-bootc gen`,
+and can build and switch the image for you.
 
-A modular bootc image based on `ghcr.io/theblack-don/kineticos:default` by default.
-Small always-on core, everything else opt-in: enable the modules you want,
-comment out the apps you don't.
+The GTK source is in `gtk/`, the RPM packaging is in `packaging/`, and the built
+RPMs are at this repository root. The earlier Python/PySide6 configurator is kept
+in `source/` for reference only — it is not built or packaged.
 
-Built with [dcli-bootc](https://copr.fedorainfracloud.org/coprs/theblackdon/dcli-bootc).
-`build_files/build.sh` is generated — edit `modules/*.yaml`, then run
-`dcli-bootc gen`.
+Requires `git` and [`dcli-bootc`](https://copr.fedorainfracloud.org/coprs/theblackdon/dcli-bootc)
+(plus `polkit`, which is used for the privileged build/switch steps).
 
-## Configure and build (GUI)
+## Install the RPM
 
-Run the configurator:
-
-```bash
-./source/kinetic-configurator
-```
-
-On first launch, choose where to clone the image project. The configurator
-remembers that project location, lets you open an existing project, and can update
-it from a fresh upstream clone. Update reapplies the current base-image, module, app,
-and list-item choices wherever matching entries remain. New entries use upstream
-defaults and removed entries disappear. Other manual edits are replaced; a complete
-backup of the previous project folder is kept beside it.
-To open a project directly without the project chooser, run
-`./source/kinetic-configurator --project /path/to/kinetic-image-builder`.
-
-The saved-project chooser also has **Reset project to a fresh template**. After
-confirmation, it replaces the selected folder with a fresh upstream clone without
-reapplying choices. The previous folder is kept as a complete sibling backup.
-
-The wizard asks for a base image (`kineticos:default` for AMD and Intel,
-`:nvidia` for Turing and newer NVIDIA cards, `:nvidia-legacy` for older NVIDIA
-cards). The `:deck` image is also listed as **very early** and **not recommended
-for normal use**. The current image remains selected by default.
-
-The wizard provides an app page for every module with selectable apps. Newly
-discovered modules are added to `profile.yaml` disabled automatically; there is
-no module-selection prompt. The baseline `base`, `rpmfusion`, and `terra`
-modules stay enabled by default; the base package list is mandatory and is not
-offered as app choices. An app or removal module is enabled only when at least
-one of its choices is selected. The `removals` module starts disabled, and each
-removal is opt-in; if none are selected, the module stays disabled. When
-removals are selected, the final options page lets users disable them all.
-Selecting Brave or Vivaldi enables its vendor repo command in the browser
-module's `pre` script before DNF installs the package.
-At the end, if no selected app needs a repository, the configurator offers to
-disable RPM Fusion, Terra, or an already-enabled Brave/Vivaldi repo. RPM Fusion
-and Terra stay enabled unless explicitly disabled; leaving a vendor-repo option
-unchecked preserves that repo's current state. The configurator writes `profile.yaml`
-and `modules/*.yaml`, runs `dcli-bootc gen`, and offers to run
-`dcli-bootc build`. The build does not switch deployments automatically; after
-a successful build, the app separately asks whether to switch to the new image
-and reboot. If the build asks whether to apply changes to the current user's
-Flatpak installation, choose **Yes** or **No** in the build window; the app
-does not apply those changes automatically.
-
-Requires Python 3, PySide6, Git, and `dcli-bootc` (the latter is needed for
-generation/build; Git is needed to clone or update projects).
-
-## Install the KineticOS Configurator RPM
-
-These RPMs are for systems running **KineticOS**. Download the binary RPM from the
+These RPMs are for machines running **KineticOS**. Download the binary RPM from the
 [latest GitHub release](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/latest),
 then install it with DNF:
 
 ```bash
-sudo dnf install ./KineticOS-Configurator-0.2.0-8.fc44.noarch.rpm
+sudo dnf install ./kinetic-configurator-0.4.0-4.fc44.x86_64.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./KineticOS-Configurator-0.2.0-8.fc44.noarch.rpm
-sudo ki install ./KineticOS-Configurator-0.2.0-8.fc44.noarch.rpm
+sudo kinpkg install ./kinetic-configurator-0.4.0-4.fc44.x86_64.rpm
+sudo ki install ./kinetic-configurator-0.4.0-4.fc44.x86_64.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
 
-## Build the RPMs
-
-The configurator source, tests, and RPM spec are in `source/`. With `rpm-build` installed, run:
+Launch it from your app menu, or from a terminal:
 
 ```bash
-./source/packaging/build-rpm.sh
+kinetic-configurator
+# or open a project directly, skipping the chooser:
+kinetic-configurator --project /path/to/kinetic-image-builder
 ```
 
-The binary and source RPMs are written to this repository's top level.
+## Using the configurator
 
-## Build
+### 1. Choose a project
 
-The app can run the build after generation. To build manually instead:
+On first launch the configurator asks where to put the image project, then
+remembers it. On later launches it offers:
+
+- **Open saved project** — reopen the folder you used last.
+- **Update full template, keep my choices** — replaces the project with a fresh
+  upstream clone and reapplies your base-image, module, app, and list-item
+  choices wherever matching entries remain. New entries use upstream defaults and
+  removed entries disappear; other manual edits are replaced. A complete backup of
+  the previous folder is kept beside it.
+- **Reset project to a fresh template** — replaces the project with a fresh
+  upstream clone and discards all choices (also with a sibling backup).
+- **Clone image project…** / **Open an existing project…** — start from a new
+  clone, or point at an existing folder containing `profile.yaml` and `modules/`.
+
+### 2. Configure with the wizard
+
+- **Base image** — `kineticos:default` (AMD and Intel), `:nvidia` (Turing or
+  newer NVIDIA), `:nvidia-legacy` (older NVIDIA), or `:deck` (marked **very
+  early** and **not recommended for normal use**). The current image stays
+  selected by default.
+- **Per-module app selection** — every module with selectable apps gets its own
+  page. The baseline `base`, `rpmfusion`, and `terra` modules stay enabled; the
+  base package list is mandatory and is not offered as app choices. An app module
+  is enabled only when at least one of its choices is selected. Newly discovered
+  modules are added to `profile.yaml` disabled automatically — there is no
+  module-selection prompt.
+- **Optional repositories and removals** — the `removals` module starts disabled
+  and each removal is opt-in; selected removals can be turned off here. If no
+  selected app needs a repository, the page offers to disable RPM Fusion, Terra,
+  or an already-enabled Brave/Vivaldi vendor repo. Leaving a vendor-repo option
+  unchecked preserves its current state. Selecting Brave or Vivaldi enables the
+  matching vendor repo command in the browser module's `pre` script before DNF
+  installs the package.
+- **Review** — a summary of the base image and every module with its selected
+  apps and removals.
+
+The wizard writes `profile.yaml` and `modules/*.yaml`, then runs `dcli-bootc gen`.
+
+### 3. Build and switch
+
+After generation the app offers to run `dcli-bootc build` (build only, no
+switch). The build console streams the full output live. If the build asks
+whether to apply changes to the current user's Flatpak installation, choose
+**Yes** or **No** in the build window — the app does not apply those changes for
+you. When the build succeeds the app separately asks whether to switch to the
+new image and reboot.
+
+### Privileges
+
+The GUI always runs as your normal user and never as root. The two privileged
+steps — **build** and **switch** — run through a small, allow-listed helper:
+
+- Helper: `/usr/libexec/kinetic-configurator/kinetic-configurator-helper`
+  (only supports `build` and `switch`, validates the project path, and execs
+  `dcli-bootc` directly — never through a shell).
+- Polkit action: `com.weecraglinux.kinetic-configurator.run-helper`.
+
+The GUI invokes the helper with `pkexec`, so your **system polkit agent**
+(Noctalia) shows the authentication dialog:
+*“KineticOS Configurator needs administrator privileges to build and switch your
+image.”*
+
+### Preferences
+
+Preferences live in `~/.config/kinetic-configurator/settings.ini`:
+
+| Group | Key | Meaning |
+|---|---|---|
+| `window` | `systemTitleBar` | Whether the compositor draws the title bar |
+| `project` | `checkoutPath` | The image project opened last |
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| Ctrl+Q | Quit |
+| Ctrl+Shift+M | Toggle the system title bar |
+| Alt (tap) | Open or close the main menu |
+| F10 | Open the main menu |
+| F1 | Help |
+
+The app follows the desktop theme live (dark mode, accent colour, and the
+monospace font), including changes made by theme generators such as Noctalia.
+
+## Building from source
+
+The GTK 4 application builds from the repository root with CMake:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+Run it with `./build/kinetic-configurator`, or install system-wide with
+`cmake --install build`. Build requirements: `cmake`, a C++17 compiler,
+`gtkmm-4.0` (>= 4.20), `libadwaita-1` (>= 1.6) and `glib2-devel`.
+
+### Build the RPMs
+
+With `rpm-build` installed:
+
+```bash
+make          # source archive: kinetic-configurator-0.4.0.tar.gz
+make srpm     # source RPM into result/
+```
+
+Version and release are read from `packaging/kinetic-configurator.spec`; on a
+release, update the spec together with the metainfo `<releases>` list,
+`CHANGELOG.md`, and this README's latest-version line.
+
+## Standard compliance
+
+This project follows the internal **GTK Desktop Application Standard** and the
+LGL reference applications (`lgl-papercutter`, `lgl-emoji-picker`): GTK 4 (gtkmm)
+with libadwaita, the shared header bar and main menu, both title bar modes, live
+desktop theming through a `ThemeWatcher`, a help window and About dialog, and
+preferences in `settings.ini`. The `build`/`switch` helper follows the
+**Privileged Operations Standard**: the GUI is unprivileged, privileged work is
+isolated in an allow-listed helper, there is no shell execution, and inputs are
+validated. Core logic is widget-free and unit tested with the GLib test framework.
+
+---
+
+## The image project the configurator manages
+
+The sections below describe the KineticOS bootc image itself (the `profile.yaml`
+and `modules/` the configurator edits). A modular image based on
+`ghcr.io/theblack-don/kineticos:default` by default: a small always-on core, with
+everything else opt-in. `build_files/build.sh` is generated — edit
+`modules/*.yaml`, then run `dcli-bootc gen`.
+
+To build manually instead of through the app:
 
 ```bash
 dcli-bootc gen
 dcli-bootc build --no-switch
 ```
 
-To use it on a machine, rebase/switch to the built image with `bootc`
-(follow your current system's rebase procedure; keep a known-good
-deployment pinned so you can roll back).
+Then rebase/switch to the built image with `bootc` (follow your current system's
+rebase procedure; keep a known-good deployment pinned so you can roll back).
 
-## Modules
+### Modules
 
 Toggle in `profile.yaml` under `enabled_modules:` (comment a line out to
 disable that whole module). Order matters: `base` first, `rpmfusion`
@@ -127,7 +210,7 @@ before anything needing it.
 LGL System Loadout's kernel-changing feature does not work with this bootc-based
 image. Do not use it to switch kernels.
 
-## Kineticos usr-overlay (kinpkg)
+### Kineticos usr-overlay (kinpkg)
 
 Kineticos provides the **usr-overlay** as a package-management layer alongside
 the base image; it is a Kineticos feature, not a separate image variant. The
@@ -138,12 +221,11 @@ packages are uninstalled. This lets overlay-managed customizations persist
 across base-image updates while avoiding file conflicts with packages in the
 base image.
 
-## Enable / disable apps
+### Enable / disable apps
 
-You can choose apps with the GUI configurator (`./source/kinetic-configurator`), or
-edit the module files manually. In each `modules/*.yaml`, lines starting with
-`# -` are disabled; uncomment a package line to install it, or comment it out
-to remove it:
+Choose apps with the GUI configurator, or edit the module files manually. In each
+`modules/*.yaml`, lines starting with `# -` are disabled; uncomment a package line
+to install it, or comment it out to remove it:
 
 ```yaml
 packages:
@@ -155,14 +237,14 @@ Some apps need their repo lines toggled alongside the package (brave,
 vivaldi) — the comments in each file say which lines belong together.
 After any change, re-run `dcli-bootc gen` before building.
 
-## Base image variants
+### Base image variants
 
 The default is `ghcr.io/theblack-don/kineticos:default` for AMD and Intel GPUs.
-Run `./source/kinetic-configurator` to select the variant that matches your GPU:
-`:default` for AMD and Intel, `:nvidia` for Turing and newer Nvidia GPUs, or
-`:nvidia-legacy` for older Nvidia GPUs. The `:deck` image is very early and not
-recommended for normal use. The configurator saves your selection to
-`profile.yaml` → `base_image:`. You can also change it manually:
+Select the variant that matches your GPU in the wizard: `:default` for AMD and
+Intel, `:nvidia` for Turing and newer Nvidia GPUs, or `:nvidia-legacy` for older
+Nvidia GPUs. The `:deck` image is very early and not recommended for normal use.
+The configurator saves your selection to `profile.yaml` → `base_image:`. You can
+also change it manually:
 
 ```yaml
 base_image: ghcr.io/theblack-don/kineticos:default
@@ -173,7 +255,7 @@ Its exact semantics depend on your dcli-bootc version — check
 `dcli-bootc gen --help` on your build host before relying on it; the
 one-line `base_image:` edit above always works regardless.
 
-## Extras
+### Extras
 
 - **fastfetch config (opt-in):** `files/fastfetch-config.jsonc` is *not*
   baked into the image. After booting, run from a repo checkout:
