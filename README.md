@@ -1,6 +1,6 @@
 # KineticOS Configurator
 
-**Latest RPM version:** `0.2.0-2.fc44` (`KineticOS-Configurator`).
+**Latest RPM version:** `0.2.0-3.fc44` (`KineticOS-Configurator`).
 
 The packaged configurator source is in `source/`; the RPM files are at this repository root.
 
@@ -21,18 +21,17 @@ Run the configurator:
 ```
 
 On first launch, choose where to clone the image project. The configurator
-remembers that project location, lets you open an existing project, and can
-sync new upstream modules and app entries or remove entries upstream has removed.
-Existing entries, enabled/disabled choices, and other local edits are kept; edits
-upstream makes to existing entries are intentionally not imported by this sync.
-It syncs `profile.yaml` and `modules/*.yaml` entries only, not other repository files.
+remembers that project location, lets you open an existing project, and can update
+it from a fresh upstream clone. Update reapplies the current base-image, module, app,
+and list-item choices wherever matching entries remain. New entries use upstream
+defaults and removed entries disappear. Other manual edits are replaced; a complete
+backup of the previous project folder is kept beside it.
 To open a project directly without the project chooser, run
 `./source/kinetic-configurator --project /path/to/kinetic-image-builder`.
 
 The saved-project chooser also has **Reset project to a fresh template**. After
-confirmation, it resets the selected clone to the latest upstream default branch
-and removes local, untracked, and ignored files. It first creates a complete
-`<project>.reset-backup-*` folder beside the project so local work can be recovered.
+confirmation, it replaces the selected folder with a fresh upstream clone without
+reapplying choices. The previous folder is kept as a complete sibling backup.
 
 The wizard asks for a base image (`kineticos:default` for AMD and Intel,
 `:nvidia` for Turing and newer NVIDIA cards, `:nvidia-legacy` for older NVIDIA
@@ -57,14 +56,14 @@ These RPMs are for systems running **KineticOS**. Install the built package with
 DNF:
 
 ```bash
-sudo dnf install ./KineticOS-Configurator-0.2.0-2.fc44.noarch.rpm
+sudo dnf install ./KineticOS-Configurator-0.2.0-3.fc44.noarch.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./KineticOS-Configurator-0.2.0-2.fc44.noarch.rpm
-sudo ki install ./KineticOS-Configurator-0.2.0-2.fc44.noarch.rpm
+sudo kinpkg install ./KineticOS-Configurator-0.2.0-3.fc44.noarch.rpm
+sudo ki install ./KineticOS-Configurator-0.2.0-3.fc44.noarch.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
