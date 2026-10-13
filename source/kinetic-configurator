@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Launch the KineticOS image configurator."""
+
+import argparse
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+if not (ROOT / "configurator").is_dir():
+    for installed_root in (
+        Path("/usr/share/KineticOS-Configurator"),
+        Path("/usr/share/kineticos-image-builder"),
+    ):
+        if (installed_root / "configurator").is_dir():
+            ROOT = installed_root
+            break
+sys.path.insert(0, str(ROOT))
+
+from configurator.app import main  # noqa: E402
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Configure and build a KineticOS image")
+    parser.add_argument(
+        "--project",
+        type=Path,
+        help="open an existing image project directly instead of choosing or cloning one",
+    )
+    args = parser.parse_args()
+    sys.exit(main(args.project))

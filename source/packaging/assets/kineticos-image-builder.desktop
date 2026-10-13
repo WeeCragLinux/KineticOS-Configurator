@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=KineticOS Configurator
+Comment=Clone, configure, reset, and build a KineticOS image
+Exec=kinetic-configurator
+TryExec=kinetic-configurator
+Icon=kineticos-image-builder
+Terminal=false
+Categories=Development;
