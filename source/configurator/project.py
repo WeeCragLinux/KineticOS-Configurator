@@ -48,8 +48,6 @@ PROFILE_ITEM_RE = re.compile(
     r"^(?P<indent>\s*)(?P<comment>#\s*)?(?P<dash>-\s*)"
     r"(?P<name>[^#\s]+)(?P<tail>.*)$"
 )
-ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
-REMOVED_PACKAGE_ERROR_RE = re.compile(r"^-\s+should have been removed:\s+(\S+)\s*$")
 
 
 @dataclass
@@ -283,92 +281,6 @@ def resolve(profile: Profile, selection: Selection) -> list[tuple[str, bool]]:
             on = was_enabled
         result.append((name, on))
     return result
-
-
-def local_rpm_package_name(root: Path, entry: str) -> str | None:
-    try:
-        result = subprocess.run(
-            ["rpm", "-qp", "--queryformat", "%{NAME}", str(root / "rpms" / entry)],
-            capture_output=True,
-            text=True,
-        )
-    except OSError:
-        return None
-    if result.returncode != 0:
-        return None
-    return result.stdout.strip() or None
-
-
-def expected_package_state(
-    modules: dict[str, Module],
-    module_states: list[tuple[str, bool]],
-    root: Path,
-) -> tuple[set[str], set[str], set[str]]:
-    """Return selected installs, effective removals, and remove/install overlaps.
-
-    The image build runs its removals before later modules install apps. Only
-    enabled modules contribute to the composed image, so selected installs
-    cancel matching removals in the final expected package state.
-    """
-    selected_installs: set[str] = set()
-    removed_packages: set[str] = set()
-
-    for module_name, enabled in module_states:
-        if not enabled:
-            continue
-        module = modules.get(module_name)
-        if module is None:
-            continue
-        for _, section, item in iter_items(module.lines):
-            if item.group(2) is not None:
-                continue
-            package = item.group(3)
-            if section == "packages":
-                selected_installs.add(package)
-            elif section == "remove":
-                removed_packages.add(package)
-            elif section == "local_rpms":
-                package_name = local_rpm_package_name(root, package)
-                if package_name:
-                    selected_installs.add(package_name)
-
-    effective_removals = removed_packages - selected_installs
-    reinstall_overlaps = removed_packages & selected_installs
-    return selected_installs, effective_removals, reinstall_overlaps
-
-
-def only_expected_removal_overlaps(output: str, reinstall_overlaps: set[str]) -> bool:
-    """Recognize dcli-bootc's old verifier false-positive as the sole failure.
-
-    A failed build is accepted only when dcli-bootc completed the image and its
-    verification block contains exclusively removal warnings for packages that
-    an enabled module installs later. Missing-package and removal-only errors
-    remain failures.
-    """
-    clean_output = ANSI_ESCAPE_RE.sub("", output)
-    build_complete = clean_output.find("Build complete")
-    failure_header = clean_output.find("Image does not match your modules:")
-    failure_footer = clean_output.find(
-        "Fix the modules/repos and rebuild.", failure_header
-    )
-    if (
-        build_complete < 0
-        or failure_header < build_complete
-        or failure_footer < 0
-    ):
-        return False
-
-    errors = clean_output[failure_header + len("Image does not match your modules:") : failure_footer]
-    reported_overlaps = []
-    for line in errors.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        match = REMOVED_PACKAGE_ERROR_RE.fullmatch(line)
-        if match is None or match.group(1) not in reinstall_overlaps:
-            return False
-        reported_overlaps.append(match.group(1))
-    return bool(reported_overlaps)
 
 
 def repo_command_enabled(module: Module | None, repo: str) -> bool:
