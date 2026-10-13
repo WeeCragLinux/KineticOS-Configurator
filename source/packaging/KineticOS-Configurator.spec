@@ -1,6 +1,6 @@
 Name:           KineticOS-Configurator
 Version:        0.2.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        KineticOS Image Configurator
 License:        MIT
 URL:            https://github.com/WeeCragLinux/kinetic-image-builder
@@ -56,6 +56,9 @@ python3 -m unittest discover -s tests -v
 %license %{_docdir}/%{name}/LICENSE
 
 %changelog
+* Tue Oct 13 2026 Kineticos Image Builder contributors - 0.2.0-4
+- Make all app modules selectable and preserve profile formatting
+- Couple browser vendor repositories to app choices and add the experimental Deck image
 * Tue Oct 13 2026 Kineticos Image Builder contributors - 0.2.0-3
 - Replace corrupt checkouts with validated fresh clones for update and reset
 - Reapply saved base-image, module, and app choices after full updates

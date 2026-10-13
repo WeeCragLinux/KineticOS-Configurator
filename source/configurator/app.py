@@ -3,17 +3,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QProcess, Qt
+from PySide6.QtCore import QProcess
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QDialog,
     QFrame,
-    QDialogButtonBox,
     QLabel,
-    QListWidget,
-    QListWidgetItem,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -33,6 +30,9 @@ BASE_DESCRIPTIONS = {
         "NVIDIA GPUs based on Turing or newer: GTX 16 series, and RTX 20, 30, 40 and 50 series"
     ),
     "ghcr.io/theblack-don/kineticos:nvidia-legacy": "NVIDIA GPUs older than the 10 series",
+    "ghcr.io/theblack-don/kineticos:deck": (
+        "Very early; not recommended for normal use."
+    ),
 }
 
 
@@ -144,7 +144,7 @@ class ModulePage(Page):
         description = QLabel(module.description, self)
         description.setWordWrap(True)
         self.body_layout.addWidget(description)
-        chosen = {app.name for app in module.apps if app.enabled}
+        chosen = self.wz.state.apps.get(module.name, set())
         self.boxes: list[tuple[project.App, QCheckBox]] = []
         for app in module.apps:
             box = QCheckBox(app_label(app))
@@ -169,26 +169,38 @@ class OptionalPage(Page):
             "KineticOS Image Configurator",
             "Choose whether to keep optional package repositories enabled.",
         )
-        self.add_section_heading("Optional modules")
+        self.add_section_heading("Optional repositories")
         description = QLabel(
-            "These modules are on by default, and none of your selected apps need them.", self
+            "Keep these repositories enabled, or disable ones that no selected app needs.", self
         )
         description.setWordWrap(True)
         self.body_layout.addWidget(description)
         self.rpm_box = QCheckBox("Disable RPM Fusion (free and nonfree repos)")
         self.terra_box = QCheckBox("Disable Terra (repos only)")
+        self.brave_box = QCheckBox("Disable the Brave browser repository")
+        self.vivaldi_box = QCheckBox("Disable the Vivaldi repository")
         self.rpm_box.toggled.connect(lambda c: setattr(self.wz.state, "disable_rpmfusion", c))
         self.terra_box.toggled.connect(lambda c: setattr(self.wz.state, "disable_terra", c))
+        self.brave_box.toggled.connect(lambda c: setattr(self.wz.state, "disable_brave_repo", c))
+        self.vivaldi_box.toggled.connect(
+            lambda c: setattr(self.wz.state, "disable_vivaldi_repo", c)
+        )
         self.body_layout.addWidget(self.rpm_box)
         self.body_layout.addWidget(self.terra_box)
+        self.body_layout.addWidget(self.brave_box)
+        self.body_layout.addWidget(self.vivaldi_box)
         self.body_layout.addStretch()
 
     def initializePage(self) -> None:
         asked = project.questions(self.wz.state)
-        self.rpm_box.setVisible("rpmfusion" in asked)
         self.rpm_box.setChecked(self.wz.state.disable_rpmfusion)
-        self.terra_box.setVisible("terra" in asked)
+        self.rpm_box.setVisible("rpmfusion" in asked)
         self.terra_box.setChecked(self.wz.state.disable_terra)
+        self.terra_box.setVisible("terra" in asked)
+        self.brave_box.setChecked(self.wz.state.disable_brave_repo)
+        self.brave_box.setVisible("brave" in asked)
+        self.vivaldi_box.setChecked(self.wz.state.disable_vivaldi_repo)
+        self.vivaldi_box.setVisible("vivaldi" in asked)
 
 
 class ReviewPage(Page):
@@ -306,18 +318,21 @@ class Wizard(QWizard):
         self.root = root
         self.profile = project.Profile(root)
         self.modules = project.load_modules(root)
-        self.add_new_modules()
-        enabled_modules = {name for name, on in self.profile.entries if on}
+        self.profile.ensure_modules(self.modules)
         self.state = project.Selection(
             base_image=self.profile.base_image,
-            originally_enabled_modules={
-                name for name, on in self.profile.entries if on
-            },
             apps={
                 name: {app.name for app in module.apps if app.enabled}
                 for name, module in self.modules.items()
-                if name in enabled_modules and any(app.enabled for app in module.apps)
+                if any(app.enabled for app in module.apps)
             },
+            app_modules={name for name, module in self.modules.items() if module.apps},
+            brave_repo_enabled=project.repo_command_enabled(
+                self.modules.get("browsers"), "brave"
+            ),
+            vivaldi_repo_enabled=project.repo_command_enabled(
+                self.modules.get("browsers"), "vivaldi"
+            ),
         )
         self.page_ids: dict[QWizardPage, int] = {}
 
@@ -332,7 +347,7 @@ class Wizard(QWizard):
         self.module_pages: list[ModulePage] = []
         for name, _ in self.profile.entries:
             module = self.modules.get(name)
-            if name == "base" or module is None or not module.apps:
+            if module is None or not module.apps:
                 continue
             page = ModulePage(self, module)
             self.add_page(page)
@@ -342,50 +357,6 @@ class Wizard(QWizard):
         self.add_page(self.optional_page)
         self.review_page = ReviewPage(self)
         self.add_page(self.review_page)
-
-    def add_new_modules(self) -> None:
-        known = {name for name, _ in self.profile.entries}
-        new_modules = sorted(set(self.modules) - known - {"base"})
-        if not new_modules:
-            return
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("New modules found")
-        dialog.setMinimumWidth(380)
-        layout = QVBoxLayout(dialog)
-        message = QLabel(
-            "Select the modules to add to profile.yaml. App modules will remain "
-            "disabled unless you select apps from them in the wizard."
-        )
-        message.setWordWrap(True)
-        layout.addWidget(message)
-
-        module_list = QListWidget(dialog)
-        for name in new_modules:
-            item = QListWidgetItem(name)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(Qt.CheckState.Unchecked)
-            item.setToolTip(self.modules[name].description)
-            module_list.addItem(item)
-        layout.addWidget(module_list)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
-            parent=dialog,
-        )
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Add selected")
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
-
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        selected = [
-            module_list.item(index).text()
-            for index in range(module_list.count())
-            if module_list.item(index).checkState() == Qt.CheckState.Checked
-        ]
-        self.profile.entries.extend((name, False) for name in selected)
 
     def add_page(self, page: QWizardPage) -> None:
         page_id = len(self.page_ids)

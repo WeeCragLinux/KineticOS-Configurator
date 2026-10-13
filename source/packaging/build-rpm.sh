@@ -9,7 +9,7 @@ BUILD_ROOT="${RPM_BUILD_ROOT:-${HOME}/rpmbuild}"
 OUTPUT_DIR="${RPM_OUTPUT_DIR:-${PACKAGE_ROOT}}"
 NAME="KineticOS-Configurator"
 VERSION="0.2.0"
-RELEASE="3"
+RELEASE="4"
 SOURCE_DIR="${BUILD_ROOT}/SOURCES"
 SOURCE_TARBALL="${SOURCE_DIR}/${NAME}-${VERSION}.tar.gz"
 
@@ -30,7 +30,7 @@ tar -czf "${SOURCE_TARBALL}" \
     kinetic-configurator \
     configurator/__init__.py configurator/app.py configurator/project.py \
     configurator/template_sync.py configurator/workspace.py \
-    tests/test_project.py tests/test_template_sync.py tests/test_workspace.py \
+    tests/test_app.py tests/test_project.py tests/test_template_sync.py tests/test_workspace.py \
     -C "${SOURCE_ROOT}/packaging/assets" \
     kineticos-image-builder.desktop kineticos-image-builder.svg
 

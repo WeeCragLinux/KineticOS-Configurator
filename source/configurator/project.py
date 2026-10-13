@@ -15,7 +15,10 @@ BASE_IMAGES = (
     "ghcr.io/theblack-don/kineticos:default",
     "ghcr.io/theblack-don/kineticos:nvidia",
     "ghcr.io/theblack-don/kineticos:nvidia-legacy",
+    "ghcr.io/theblack-don/kineticos:deck",
 )
+
+BASELINE_MODULES = ("base", "rpmfusion", "terra")
 
 APP_SECTIONS = ("packages", "flatpaks", "local_rpms")
 RPMFUSION_APPS = frozenset({"vlc", "mpv", "steam", "lutris", "discord"})
@@ -23,14 +26,28 @@ TERRA_APPS = frozenset({"terra-mangohud"})
 
 # Apps that also need a line in their module's repos section turned on.
 APP_REPOS = {
-    "helium-bin": ("repos", "imput/helium"),
-    "prismlauncher": ("repos", "g3tchoo/prismlauncher"),
+    "helium-bin": ("copr", "imput/helium"),
+    "prismlauncher": ("copr", "g3tchoo/prismlauncher"),
 }
 
-SECTION_RE = re.compile(r"^([A-Za-z_]\w*):")
+BROWSER_REPO_URLS = {
+    "brave": "brave-browser-rpm-release.s3.brave.com/brave-browser.repo",
+    "vivaldi": "repo.vivaldi.com/stable/vivaldi-fedora.repo",
+}
+BROWSER_REPO_APPS = {
+    "brave": frozenset({"brave-browser", "brave-origin"}),
+    "vivaldi": frozenset({"vivaldi-stable"}),
+}
+
+SECTION_RE = re.compile(r"^\s*([A-Za-z_]\w*):")
 DESCRIPTION_RE = re.compile(r"^description:\s*(.*?)\s*$")
 ITEM_RE = re.compile(r"^(\s*)(#\s*)?-\s+(\S+)(.*)$")
-PROFILE_ITEM_RE = re.compile(r"^\s*(#\s*)?-\s*(\S+)\s*$")
+PROFILE_HEADER_RE = re.compile(r"^\s*enabled_modules\s*:")
+PROFILE_KEY_RE = re.compile(r"^[A-Za-z_]\w*\s*:")
+PROFILE_ITEM_RE = re.compile(
+    r"^(?P<indent>\s*)(?P<comment>#\s*)?(?P<dash>-\s*)"
+    r"(?P<name>[^#\s]+)(?P<tail>.*)$"
+)
 
 
 @dataclass
@@ -56,7 +73,11 @@ class Selection:
     apps: dict[str, set[str]] = field(default_factory=dict)
     disable_rpmfusion: bool = False
     disable_terra: bool = False
-    originally_enabled_modules: set[str] = field(default_factory=set)
+    disable_brave_repo: bool = False
+    disable_vivaldi_repo: bool = False
+    brave_repo_enabled: bool = False
+    vivaldi_repo_enabled: bool = False
+    app_modules: set[str] = field(default_factory=set)
 
     def chosen(self) -> set[str]:
         return set().union(*self.apps.values())
@@ -118,36 +139,116 @@ class Profile:
             (
                 match.group(1)
                 for line in self.lines
-                if (match := re.match(r"^base_image:\s*(\S+)\s*$", line))
+                if (
+                    match := re.match(
+                        r"^\s*base_image\s*:\s*(\S+?)(?:\s+#.*)?\s*$", line
+                    )
+                )
             ),
             None,
         )
-        self.header = next(
-            i for i, line in enumerate(self.lines) if line.startswith("enabled_modules:")
-        )
+        try:
+            self.header = next(
+                i for i, line in enumerate(self.lines) if PROFILE_HEADER_RE.match(line)
+            )
+        except StopIteration as error:
+            raise ValueError("profile.yaml must contain an enabled_modules list") from error
+
         end = self.header + 1
-        entries: list[tuple[str, bool]] = []
-        while end < len(self.lines) and (m := PROFILE_ITEM_RE.match(self.lines[end])):
-            entries.append((m.group(2), m.group(1) is None))
+        while end < len(self.lines):
+            if PROFILE_KEY_RE.match(self.lines[end]):
+                break
             end += 1
         self.end = end
-
-        names = [name for name, _ in entries]
-        if "terra" not in names:
-            position = names.index("rpmfusion") + 1 if "rpmfusion" in names else len(entries)
-            entries.insert(position, ("terra", False))
+        entries: list[tuple[str, bool]] = []
+        for line in self.lines[self.header + 1 : self.end]:
+            match = PROFILE_ITEM_RE.match(line)
+            if match:
+                entries.append((match.group("name"), match.group("comment") is None))
         self.entries = entries
+
+    def ensure_modules(self, module_names) -> None:
+        """Keep baseline modules active and list every discovered module disabled."""
+        states = dict(self.entries)
+        ordered = [name for name, _ in self.entries]
+        for index, name in enumerate(BASELINE_MODULES):
+            if name not in states:
+                states[name] = True
+                ordered.insert(min(index, len(ordered)), name)
+            else:
+                states[name] = True
+        for name in sorted(set(module_names) - set(ordered)):
+            states[name] = False
+            ordered.append(name)
+        self.entries = [(name, states[name]) for name in ordered]
 
     def save(self, base_image: str, entries: list[tuple[str, bool]]) -> None:
         lines = list(self.lines)
-        lines[self.header + 1 : self.end] = [
-            f"- {name}" if on else f"#- {name}" for name, on in entries
-        ]
-        lines = [
-            f"base_image: {base_image}" if line.startswith("base_image:") else line
-            for line in lines
-        ]
-        self.path.write_text("\n".join(lines) + "\n")
+        existing: dict[str, int] = {}
+        for index in range(self.header + 1, self.end):
+            match = PROFILE_ITEM_RE.match(lines[index])
+            if match:
+                existing.setdefault(match.group("name"), index)
+
+        insertions: dict[int, list[str]] = {}
+        for entry_index, (name, enabled) in enumerate(entries):
+            line_index = existing.get(name)
+            if line_index is None:
+                next_index = next(
+                    (
+                        existing[next_name]
+                        for next_name, _ in entries[entry_index + 1 :]
+                        if next_name in existing
+                    ),
+                    None,
+                )
+                if next_index is not None:
+                    line_index = next_index
+                elif existing:
+                    line_index = max(existing.values()) + 1
+                else:
+                    line_index = self.header + 1
+                style_index = next(
+                    (index for index in existing.values() if index == line_index),
+                    max(existing.values()) if existing else None,
+                )
+                style = (
+                    PROFILE_ITEM_RE.match(lines[style_index])
+                    if style_index is not None
+                    else None
+                )
+                indent = style.group("indent") if style else ""
+                dash = style.group("dash") if style else "- "
+                comment = "" if enabled else "#"
+                insertions.setdefault(line_index, []).append(
+                    f"{indent}{comment}{dash}{name}"
+                )
+                continue
+
+            match = PROFILE_ITEM_RE.match(lines[line_index])
+            if not match:
+                continue
+            currently_enabled = match.group("comment") is None
+            if currently_enabled != enabled:
+                marker = "" if enabled else "#"
+                lines[line_index] = (
+                    f"{match.group('indent')}{marker}{match.group('dash')}"
+                    f"{match.group('name')}{match.group('tail')}"
+                )
+
+        output: list[str] = []
+        for index, line in enumerate(lines):
+            output.extend(insertions.get(index, ()))
+            output.append(line)
+        output.extend(insertions.get(len(lines), ()))
+
+        base_re = re.compile(r"^(\s*base_image\s*:\s*)\S+(.*)$")
+        for index, line in enumerate(output):
+            match = base_re.match(line)
+            if match:
+                output[index] = f"{match.group(1)}{base_image}{match.group(2)}"
+                break
+        self.path.write_text("\n".join(output) + "\n")
 
 
 def questions(selection: Selection) -> list[str]:
@@ -157,23 +258,58 @@ def questions(selection: Selection) -> list[str]:
         asked.append("rpmfusion")
     if not chosen & TERRA_APPS:
         asked.append("terra")
+    if not chosen & BROWSER_REPO_APPS["brave"] and selection.brave_repo_enabled:
+        asked.append("brave")
+    if not chosen & BROWSER_REPO_APPS["vivaldi"] and selection.vivaldi_repo_enabled:
+        asked.append("vivaldi")
     return asked
 
 
 def resolve(profile: Profile, selection: Selection) -> list[tuple[str, bool]]:
     asked = questions(selection)
     result = []
-    for name, _ in profile.entries:
+    for name, was_enabled in profile.entries:
         if name == "base":
             on = True
         elif name == "rpmfusion":
             on = not (selection.disable_rpmfusion and "rpmfusion" in asked)
         elif name == "terra":
             on = not (selection.disable_terra and "terra" in asked)
-        else:
+        elif name in selection.app_modules:
             on = bool(selection.apps.get(name))
+        else:
+            on = was_enabled
         result.append((name, on))
     return result
+
+
+def repo_command_enabled(module: Module | None, repo: str) -> bool:
+    if module is None:
+        return False
+    marker = BROWSER_REPO_URLS[repo]
+    for line in module.lines:
+        if marker not in line or "dnf config-manager" not in line:
+            continue
+        return not line.lstrip().startswith("#")
+    return False
+
+
+def set_repo_command(module: Module, repo: str, enabled: bool) -> None:
+    marker = BROWSER_REPO_URLS[repo]
+    for index, line in enumerate(module.lines):
+        if marker not in line or "dnf config-manager" not in line:
+            continue
+        indent = line[: len(line) - len(line.lstrip())]
+        command = line[len(indent) :]
+        if command.startswith("#"):
+            command = command[1:]
+            if command.startswith(" "):
+                command = command[1:]
+        if enabled:
+            module.lines[index] = indent + command
+        else:
+            module.lines[index] = indent + "# " + command
+        return
 
 
 def apply(
@@ -183,12 +319,12 @@ def apply(
     profile: Profile,
 ) -> None:
     entries = resolve(profile, selection)
+    chosen_apps = selection.chosen()
     for name, on in entries:
         module = modules.get(name)
-        if module is None or not module.apps:
+        if module is None:
             continue
-        if not on and name not in selection.originally_enabled_modules:
-            # Preserve configured packages in modules that were already disabled.
+        if not module.apps:
             continue
         chosen = selection.apps.get(name, set()) if on else set()
         lines = list(module.lines)
@@ -197,8 +333,22 @@ def apply(
             set_item(lines, app.section, app.name, wanted)
             if app.repo:
                 set_item(lines, app.repo[0], app.repo[1], wanted)
-        if lines != module.lines:
-            module.path.write_text("\n".join(lines) + "\n")
+        module.lines = lines
+
+    browser_module = modules.get("browsers")
+    if browser_module is not None:
+        brave_enabled = bool(chosen_apps & BROWSER_REPO_APPS["brave"]) or (
+            selection.brave_repo_enabled and not selection.disable_brave_repo
+        )
+        vivaldi_enabled = bool(chosen_apps & BROWSER_REPO_APPS["vivaldi"]) or (
+            selection.vivaldi_repo_enabled and not selection.disable_vivaldi_repo
+        )
+        set_repo_command(browser_module, "brave", brave_enabled)
+        set_repo_command(browser_module, "vivaldi", vivaldi_enabled)
+
+    for module in modules.values():
+        if module.lines != module.path.read_text().splitlines():
+            module.path.write_text("\n".join(module.lines) + "\n")
     profile.save(selection.base_image, entries)
 
 

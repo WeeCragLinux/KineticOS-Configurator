@@ -1,6 +1,6 @@
 # KineticOS Configurator
 
-**Latest RPM version:** `0.2.0-3.fc44` (`KineticOS-Configurator`).
+**Latest RPM version:** `0.2.0-4.fc44` (`KineticOS-Configurator`).
 
 The packaged configurator source is in `source/`; the RPM files are at this repository root.
 
@@ -35,17 +35,23 @@ reapplying choices. The previous folder is kept as a complete sibling backup.
 
 The wizard asks for a base image (`kineticos:default` for AMD and Intel,
 `:nvidia` for Turing and newer NVIDIA cards, `:nvidia-legacy` for older NVIDIA
-cards), then walks through each module in `profile.yaml` order and lets you pick its apps.
-At launch, it also finds YAML modules that are missing from `profile.yaml` and
-asks which ones to add. Newly added modules stay disabled unless you select
-apps from them.
-`base`, `rpmfusion` and `terra` are on by default. Selecting an app turns its
-module on. When it finishes, it writes `profile.yaml` and `modules/*.yaml` and
-runs `dcli-bootc gen`. It then offers to run `dcli-bootc build` in the app. The
-build does not switch deployments automatically; after a successful build, the
-app separately asks whether to switch to the new image and reboot.
-If none of the selected apps need RPM Fusion or Terra, the configurator offers the
-option to disable each unused module; they stay enabled unless you choose to disable them.
+cards). The `:deck` image is also listed as **very early** and **not recommended
+for normal use**. The current image remains selected by default.
+
+The wizard provides an app page for every module with selectable apps. Newly
+discovered modules are added to `profile.yaml` disabled automatically; there is
+no module-selection prompt. The baseline `base`, `rpmfusion`, and `terra`
+modules stay enabled by default. An app module is enabled only when at least
+one of its apps is selected. Selecting Brave or Vivaldi enables its vendor repo
+command in the browser module's `pre` script before DNF installs the package.
+At the end, if no selected app needs a repository, the configurator offers to
+disable RPM Fusion, Terra, or an already-enabled Brave/Vivaldi repo. RPM Fusion
+and Terra stay enabled unless explicitly disabled; leaving a vendor-repo option
+unchecked preserves that repo's current state. The configurator writes `profile.yaml`
+and `modules/*.yaml`, runs `dcli-bootc gen`, and offers to run
+`dcli-bootc build`. The build does not switch deployments automatically; after
+a successful build, the app separately asks whether to switch to the new image
+and reboot.
 
 Requires Python 3, PySide6, Git, and `dcli-bootc` (the latter is needed for
 generation/build; Git is needed to clone or update projects).
@@ -56,14 +62,14 @@ These RPMs are for systems running **KineticOS**. Install the built package with
 DNF:
 
 ```bash
-sudo dnf install ./KineticOS-Configurator-0.2.0-3.fc44.noarch.rpm
+sudo dnf install ./KineticOS-Configurator-0.2.0-4.fc44.noarch.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./KineticOS-Configurator-0.2.0-3.fc44.noarch.rpm
-sudo ki install ./KineticOS-Configurator-0.2.0-3.fc44.noarch.rpm
+sudo kinpkg install ./KineticOS-Configurator-0.2.0-4.fc44.noarch.rpm
+sudo ki install ./KineticOS-Configurator-0.2.0-4.fc44.noarch.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
@@ -145,8 +151,9 @@ After any change, re-run `dcli-bootc gen` before building.
 The default is `ghcr.io/theblack-don/kineticos:default` for AMD and Intel GPUs.
 Run `./source/kinetic-configurator` to select the variant that matches your GPU:
 `:default` for AMD and Intel, `:nvidia` for Turing and newer Nvidia GPUs, or
-`:nvidia-legacy` for older Nvidia GPUs. The configurator saves your selection
-to `profile.yaml` → `base_image:`. You can also change it manually:
+`:nvidia-legacy` for older Nvidia GPUs. The `:deck` image is very early and not
+recommended for normal use. The configurator saves your selection to
+`profile.yaml` → `base_image:`. You can also change it manually:
 
 ```yaml
 base_image: ghcr.io/theblack-don/kineticos:default
