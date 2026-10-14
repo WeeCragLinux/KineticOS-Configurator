@@ -64,6 +64,7 @@ private:
     void writeAndBuild();
     void showAbout();
     void showHelp();
+    void showSameImageDialog();
     void focusPrimary();
     void watchAltTap(Gtk::Widget &widget);
 
@@ -99,6 +100,7 @@ private:
     AsyncTask<std::pair<bool, std::string>> m_generate;
     bool m_altTapped{false};
     bool m_syncing{false};
+    bool m_writing{false};
 };
 
 } // namespace kineticos

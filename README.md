@@ -1,7 +1,7 @@
 # KineticOS Configurator
 
 **Latest RPM version:**
-[`0.4.0-5.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-5)
+[`0.4.0-7.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-7)
 (`kinetic-configurator`).
 
 KineticOS Configurator is a **GTK 4 (gtkmm) + libadwaita** desktop app that
@@ -23,14 +23,14 @@ These RPMs are for machines running **KineticOS**. Download the binary RPM from 
 then install it with DNF:
 
 ```bash
-sudo dnf install ./kinetic-configurator-0.4.0-5.fc44.x86_64.rpm
+sudo dnf install ./kinetic-configurator-0.4.0-7.fc44.x86_64.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./kinetic-configurator-0.4.0-5.fc44.x86_64.rpm
-sudo ki install ./kinetic-configurator-0.4.0-5.fc44.x86_64.rpm
+sudo kinpkg install ./kinetic-configurator-0.4.0-7.fc44.x86_64.rpm
+sudo ki install ./kinetic-configurator-0.4.0-7.fc44.x86_64.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
@@ -92,7 +92,9 @@ switch). The build console streams the full output live. If the build asks
 whether to apply changes to the current user's Flatpak installation, choose
 **Yes** or **No** in the build window — the app does not apply those changes for
 you. When the build succeeds the app separately asks whether to switch to the
-new image and reboot.
+new image and reboot. If the image you built is identical to the deployment this
+computer is currently running, the app says so instead of offering the switch,
+and asks whether to exit or go back to the first step and change your selections.
 
 ### Privileges
 

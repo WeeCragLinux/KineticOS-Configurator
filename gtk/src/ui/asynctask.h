@@ -14,7 +14,10 @@ namespace kineticos {
 template <typename Result>
 class AsyncTask final {
 public:
-    AsyncTask() = default;
+    // The dispatcher is connected once: connecting on every start() would add a slot each time,
+    // so a later emit would run the completion once per accumulated slot (spawning duplicate
+    // dialogs). See deliver() for the matching guard.
+    AsyncTask() { m_dispatcher.connect([this] { deliver(); }); }
     ~AsyncTask() { join(); }
 
     AsyncTask(const AsyncTask &) = delete;
@@ -24,7 +27,6 @@ public:
     {
         join();
         m_done = std::move(done);
-        m_dispatcher.connect([this] { deliver(); });
         m_thread = std::thread([this, work = std::move(work)] {
             Result result = work();
             {
@@ -44,13 +46,16 @@ private:
 
     void deliver()
     {
+        // Take the completion so a stray second emission cannot run it again.
+        std::function<void(Result)> done = std::move(m_done);
+        if (!done)
+            return;
         Result result;
         {
             const std::lock_guard<std::mutex> lock(m_mutex);
             result = m_result;
         }
-        if (m_done)
-            m_done(std::move(result));
+        done(std::move(result));
     }
 
     Glib::Dispatcher m_dispatcher;

@@ -49,6 +49,8 @@ set_source_files_properties(${RESOURCE_C} PROPERTIES COMPILE_OPTIONS "-w")
 # --- core (no widgets; testable) --------------------------------------------------
 
 add_library(kinetic_core STATIC
+    src/core/dcli.cpp
+    src/core/dcli.h
     src/core/process.cpp
     src/core/process.h
     src/core/project.cpp
@@ -109,12 +111,12 @@ install(FILES ${KINETIC_REPO_ROOT}/packaging/com.weecraglinux.kinetic-configurat
 # --- tests -----------------------------------------------------------------------
 
 if(BUILD_TESTING)
-    foreach(test project template_sync workspace settings theme)
+    foreach(test dcli project template_sync workspace settings theme)
         add_executable(${test}_test tests/${test}_test.cpp)
         target_link_libraries(${test}_test PRIVATE kinetic_core)
         add_test(NAME ${test} COMMAND ${test}_test)
     endforeach()
     # g_test_skip() reports 77 under the TAP harness.
-    set_tests_properties(project template_sync workspace settings theme
+    set_tests_properties(dcli project template_sync workspace settings theme
         PROPERTIES SKIP_RETURN_CODE 77)
 endif()

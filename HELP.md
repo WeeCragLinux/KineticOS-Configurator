@@ -87,6 +87,12 @@ app does not apply those changes for you. The build does not switch deployments
 automatically. After a successful build, the app separately asks whether to
 switch to the new image and reboot.
 
+If the image you built is identical to the deployment this computer is currently
+running, the app says so instead of offering the switch, and asks whether to
+exit the configurator or go back to the first step and change your selections.
+Nothing has changed on the system in that case, so there is nothing to reboot
+into.
+
 Building and switching are privileged steps. The app runs as your normal user
 and asks your system polkit agent (for example, Noctalia) for administrator
 authentication before it runs them.

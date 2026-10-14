@@ -1,5 +1,6 @@
 #include "ui/window.h"
 
+#include "core/dcli.h"
 #include "core/workspace.h"
 #include "ui/buildconsole.h"
 #include "ui/helpwindow.h"
@@ -8,6 +9,7 @@
 
 #include <gdk/gdkkeysyms.h>
 #include <gdkmm/texture.h>
+#include <giomm/actiongroup.h>
 #include <giomm/menu.h>
 #include <giomm/simpleaction.h>
 #include <glibmm/main.h>
@@ -395,6 +397,30 @@ void Window::showAbout()
     m_about->present();
 }
 
+void Window::showSameImageDialog()
+{
+    auto dialog = Gtk::AlertDialog::create();
+    dialog->set_modal(true);
+    dialog->set_message("This image is the same as the one you are running");
+    dialog->set_detail(
+        "The image you just built matches the deployment this computer is currently booted "
+        "from, so switching and rebooting would change nothing.\n\n"
+        "Change your selections in the wizard (for example, add or remove an app, or pick a "
+        "different base image) and build again, or exit the configurator.");
+    dialog->set_buttons({"Go back and make changes", "Exit"});
+    // Returning to the wizard is the safe answer, so it is the default and what Escape picks.
+    dialog->set_cancel_button(0);
+    dialog->set_default_button(0);
+    dialog->choose(*this, [this, dialog](const Glib::RefPtr<Gio::AsyncResult> &result) {
+        if (dialog->choose_finish(result) == 1) {
+            if (const auto application = get_application())
+                application->activate_action("quit");
+            return;
+        }
+        go(0);
+    });
+}
+
 void Window::notify(const std::string &text, const NoticeKind kind, const unsigned int timeoutMs)
 {
     for (const char *name : {"positive", "neutral", "negative"})
@@ -450,6 +476,10 @@ void Window::watchAltTap(Gtk::Widget &widget)
 
 void Window::writeAndBuild()
 {
+    // Ignore repeated clicks while a write/generate run is already in flight, so only one
+    // "Build image now?" prompt is ever produced.
+    if (m_writing)
+        return;
     try {
         apply(m_root, m_selection, m_modules, m_profile);
     } catch (const std::exception &error) {
@@ -457,10 +487,12 @@ void Window::writeAndBuild()
         return;
     }
 
+    m_writing = true;
     notify("Writing the project configuration…", NoticeKind::Info, 0);
     m_generate.start(
         [root = m_root] { return generate(root); },
         [this](std::pair<bool, std::string> result) {
+            m_writing = false;
             if (!result.first) {
                 notify("dcli-bootc gen failed.", NoticeKind::Negative, 0);
                 errorDialog(*this, "Files written, but dcli-bootc gen failed",
@@ -489,6 +521,12 @@ void Window::writeAndBuild()
                                                                   : text));
                             return;
                         }
+                        // dcli-bootc already compared the built digest with the booted one and
+                        // reported a match. Switching would be a no-op, so do not offer it.
+                        if (buildReportedIdenticalImage(text)) {
+                            showSameImageDialog();
+                            return;
+                        }
                         confirm(
                             *this, "Switch to the new image and reboot?",
                             "The image built successfully. Switch this computer to the new "
@@ -515,6 +553,12 @@ void Window::writeAndBuild()
                                                 + (text.size() > 4000
                                                        ? text.substr(text.size() - 4000)
                                                        : text));
+                                        return;
+                                    }
+                                    // Safety net: if the switch turned out to stage nothing new,
+                                    // report the identical image rather than claiming a switch.
+                                    if (switchReportedNothingStaged(text)) {
+                                        showSameImageDialog();
                                         return;
                                     }
                                     notify("Switching to the new image.", NoticeKind::Neutral, 0);

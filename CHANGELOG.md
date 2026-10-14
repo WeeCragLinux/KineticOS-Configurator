@@ -3,6 +3,24 @@
 All notable changes to the KineticOS Configurator are recorded here. The
 version numbering matches the RPM package version (`Version-Release`).
 
+## [0.4.0-7] — 2026-10-14
+
+- Fix duplicate **Build image now?** dialogs. The async task reconnected its
+  dispatcher on every run, so going back and running the wizard again made the
+  generation completion fire once per accumulated connection and spawn a stack
+  of prompts. The dispatcher is connected once now, and a second write/generate
+  is ignored while one is already in flight.
+
+## [0.4.0-6] — 2026-10-14
+
+- When the freshly built image is identical to the deployment the computer is
+  currently booted from, stop offering the switch. The app now reads
+  dcli-bootc's own identical-image report, states that the image is the same as
+  the one already running, and asks whether to exit the configurator or go back
+  to the first step and change the selections. Previously it opened a
+  "Switching to the new image" console and reported a switch that changed
+  nothing.
+
 ## [0.4.0-5] — 2026-10-14
 
 - Show the **Yes**/**No** controls for any yes/no question a build command asks,

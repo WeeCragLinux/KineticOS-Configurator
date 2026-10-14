@@ -1,6 +1,6 @@
 Name:           kinetic-configurator
 Version:        0.4.0
-Release:        5%{?dist}
+Release:        7%{?dist}
 Summary:        KineticOS Image Configurator
 
 License:        MIT
@@ -69,6 +69,17 @@ appstreamcli validate --no-net %{buildroot}%{_datadir}/metainfo/%{app_id}.metain
 %{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 
 %changelog
+* Wed Oct 14 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-7
+- Fix duplicate "Build image now?" dialogs: the async task reconnected its
+  dispatcher on every run, so re-running the wizard after going back ran the
+  completion (and its dialog) once per accumulated connection. The dispatcher
+  is now connected once, and a second write/generate is ignored while one is in
+  flight
+* Wed Oct 14 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-6
+- When the freshly built image is identical to the deployment the computer is
+  currently booted from, state that it is the same image and offer to exit or go
+  back and change the selections, instead of offering the switch and reporting a
+  switch that changed nothing
 * Wed Oct 14 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-5
 - Show the Yes/No controls for any, not just the Flatpak, yes/no question a
   build command asks (for example dcli-bootc's "Pull the latest base and
