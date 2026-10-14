@@ -14,7 +14,17 @@ namespace kineticos {
 
 namespace {
 
-const char *const flatpakPrompt = "apply these changes to your user flatpak installation?";
+// Yes/no markers printed by the confirmation prompts a build can show. The haystack is
+// lowercased before searching, so "[y/n]" matches "[y/N]", "[Y/n]" and friends too.
+const char *const yesNoMarkers[] = {
+    "[y/n]",
+    "(y/n)",
+    "[yes/no]",
+    "(yes/no)",
+    // The Kinetic Image Builder's Flatpak question (kept in case the trailing marker is ever
+    // split across separate writes).
+    "apply these changes to your user flatpak installation?",
+};
 
 std::string lowercase(std::string text)
 {
@@ -80,7 +90,7 @@ BuildConsole::BuildConsole(Gtk::Window &parent, const std::string &title,
 
     m_promptRow.set_visible(false);
     auto *promptLabel = Gtk::make_managed<Gtk::Label>(
-        "Apply these changes to your user Flatpak installation?");
+        "The command is waiting for a yes or no answer:");
     promptLabel->set_hexpand(true);
     promptLabel->set_halign(Gtk::Align::START);
     m_promptRow.append(*promptLabel);
@@ -183,9 +193,11 @@ void BuildConsole::updatePrompt()
 {
     unsigned int occurrences = 0;
     const std::string haystack = lowercase(m_text->get_text());
-    for (std::size_t at = haystack.find(flatpakPrompt); at != std::string::npos;
-         at = haystack.find(flatpakPrompt, at + 1))
-        ++occurrences;
+    for (const char *marker : yesNoMarkers) {
+        for (std::size_t at = haystack.find(marker); at != std::string::npos;
+             at = haystack.find(marker, at + 1))
+            ++occurrences;
+    }
     m_promptCount = occurrences;
     m_promptRow.set_visible(m_running && m_promptCount > m_answeredPrompts);
 }

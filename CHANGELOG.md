@@ -3,6 +3,13 @@
 All notable changes to the KineticOS Configurator are recorded here. The
 version numbering matches the RPM package version (`Version-Release`).
 
+## [0.4.0-5] — 2026-10-14
+
+- Show the **Yes**/**No** controls for any yes/no question a build command asks,
+  not just the user Flatpak prompt. This covers dcli-bootc's "Pull the latest
+  base and rebuild fresh (dcli-bootc update) instead? [y/N]" question, and the
+  prompt row now uses a generic label instead of the Flatpak-specific wording.
+
 ## [0.4.0-4] — 2026-10-13
 
 - Regenerate the application icon with a transparent background.

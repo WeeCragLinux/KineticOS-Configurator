@@ -12,7 +12,7 @@
 namespace kineticos {
 
 // Runs a long command and shows its live output. A secondary window with its own header bar,
-// streaming the merged stdout/stderr, and answering the build's Flatpak yes/no prompt.
+// streaming the merged stdout/stderr, and answering the command's yes/no prompts.
 class BuildConsole final : public Gtk::Window {
 public:
     BuildConsole(Gtk::Window &parent, const std::string &title, std::vector<std::string> command);

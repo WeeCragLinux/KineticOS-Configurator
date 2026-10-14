@@ -1,6 +1,6 @@
 Name:           kinetic-configurator
 Version:        0.4.0
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        KineticOS Image Configurator
 
 License:        MIT
@@ -69,6 +69,10 @@ appstreamcli validate --no-net %{buildroot}%{_datadir}/metainfo/%{app_id}.metain
 %{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 
 %changelog
+* Wed Oct 14 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-5
+- Show the Yes/No controls for any, not just the Flatpak, yes/no question a
+  build command asks (for example dcli-bootc's "Pull the latest base and
+  rebuild fresh … instead? [y/N]"), and label the row generically
 * Tue Oct 13 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-4
 - Regenerate the app icon with a transparent background
 * Tue Oct 13 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-3

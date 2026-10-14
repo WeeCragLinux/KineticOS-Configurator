@@ -1,7 +1,7 @@
 # KineticOS Configurator
 
 **Latest RPM version:**
-[`0.4.0-4.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-4)
+[`0.4.0-5.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-5)
 (`kinetic-configurator`).
 
 KineticOS Configurator is a **GTK 4 (gtkmm) + libadwaita** desktop app that
@@ -23,14 +23,14 @@ These RPMs are for machines running **KineticOS**. Download the binary RPM from 
 then install it with DNF:
 
 ```bash
-sudo dnf install ./kinetic-configurator-0.4.0-4.fc44.x86_64.rpm
+sudo dnf install ./kinetic-configurator-0.4.0-5.fc44.x86_64.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./kinetic-configurator-0.4.0-4.fc44.x86_64.rpm
-sudo ki install ./kinetic-configurator-0.4.0-4.fc44.x86_64.rpm
+sudo kinpkg install ./kinetic-configurator-0.4.0-5.fc44.x86_64.rpm
+sudo ki install ./kinetic-configurator-0.4.0-5.fc44.x86_64.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
