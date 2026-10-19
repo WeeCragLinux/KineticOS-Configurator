@@ -68,14 +68,14 @@ remembers it. On later launches it offers:
   early** and **not recommended for normal use**). The current image stays
   selected by default.
 - **Per-module app selection** — every module with selectable apps gets its own
-  page. The baseline `base`, `rpmfusion`, and `terra` modules stay enabled; the
+  page. The baseline `base`, `rpmfusion`, modules stay enabled; the
   base package list is mandatory and is not offered as app choices. An app module
   is enabled only when at least one of its choices is selected. Newly discovered
   modules are added to `profile.yaml` disabled automatically — there is no
   module-selection prompt.
 - **Optional repositories and removals** — the `removals` module starts disabled
   and each removal is opt-in; selected removals can be turned off here. If no
-  selected app needs a repository, the page offers to disable RPM Fusion, Terra,
+  selected app needs a repository, the page offers to disable RPM Fusion,
   or an already-enabled Brave/Vivaldi vendor repo. Leaving a vendor-repo option
   unchecked preserves its current state. Selecting Brave or Vivaldi enables the
   matching vendor repo command in the browser module's `pre` script before DNF
