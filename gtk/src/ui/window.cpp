@@ -521,55 +521,82 @@ void Window::writeAndBuild()
                                                                   : text));
                             return;
                         }
-                        // dcli-bootc already compared the built digest with the booted one and
-                        // reported a match. Switching would be a no-op, so do not offer it.
-                        if (buildReportedIdenticalImage(text)) {
-                            showSameImageDialog();
-                            return;
-                        }
-                        confirm(
-                            *this, "Switch to the new image and reboot?",
-                            "The image built successfully. Switch this computer to the new "
-                            "image and reboot now?\n\nThe current deployment should remain "
-                            "available for rollback.",
-                            "Switch and reboot", "Not now", [this](bool switchNow) {
-                                if (!switchNow)
-                                    return;
-                                m_console = std::make_unique<BuildConsole>(
-                                    *this, "Switching to the new image",
-                                    std::vector<std::string>{kPkexec, kHelper, "switch",
-                                                             "--project", m_root});
-                                m_console->signalFinished().connect([this](bool ok) {
-                                    const std::string text =
-                                        m_console ? m_console->output() : std::string();
-                                    if (m_console)
-                                        m_console->close();
-                                    if (!ok) {
-                                        errorDialog(
-                                            *this, "Could not switch image",
-                                            "dcli-bootc switch did not complete successfully. "
-                                            "Check its output and your system's bootc "
-                                            "permissions.\n\n"
-                                                + (text.size() > 4000
-                                                       ? text.substr(text.size() - 4000)
-                                                       : text));
-                                        return;
-                                    }
-                                    // Safety net: if the switch turned out to stage nothing new,
-                                    // report the identical image rather than claiming a switch.
-                                    if (switchReportedNothingStaged(text)) {
-                                        showSameImageDialog();
-                                        return;
-                                    }
-                                    notify("Switching to the new image.", NoticeKind::Neutral, 0);
-                                });
-                                m_console->present();
-                                m_console->run();
-                            });
+                        // Install the Flatpaks for the real user, then continue either way.
+                        // Start on the next main-loop turn so the finished console can be
+                        // replaced safely while it is still emitting.
+                        Glib::signal_idle().connect_once([this, text] {
+                            syncUserFlatpaks([this, text] { finishBuild(text); });
+                        });
                     });
                     m_console->present();
                     m_console->run();
                 });
+        });
+}
+
+void Window::syncUserFlatpaks(std::function<void()> done)
+{
+    // The build runs as root through pkexec; `flatpak --user` there would target /root.
+    // Run the sync as the normal GUI user instead, and never make it fatal: the image is
+    // already built and the sync can be repeated later.
+    m_console = std::make_unique<BuildConsole>(
+        *this, "Installing user Flatpaks",
+        std::vector<std::string>{"/usr/bin/dcli-bootc", "flatpak", "sync", "--force", "-p",
+                                 m_root});
+    m_console->signalFinished().connect([this, done = std::move(done)](bool ok) {
+        if (m_console)
+            m_console->close();
+        if (!ok)
+            notify("Flatpaks were not installed. Run 'dcli-bootc flatpak sync'.",
+                   NoticeKind::Neutral, 0);
+        done();
+    });
+    m_console->present();
+    m_console->run();
+}
+
+void Window::finishBuild(const std::string &buildOutput)
+{
+    // dcli-bootc already compared the built digest with the booted one and reported a
+    // match. Switching would be a no-op, so do not offer it.
+    if (buildReportedIdenticalImage(buildOutput)) {
+        showSameImageDialog();
+        return;
+    }
+    confirm(
+        *this, "Switch to the new image and reboot?",
+        "The image built successfully. Switch this computer to the new "
+        "image and reboot now?\n\nThe current deployment should remain "
+        "available for rollback.",
+        "Switch and reboot", "Not now", [this](bool switchNow) {
+            if (!switchNow)
+                return;
+            m_console = std::make_unique<BuildConsole>(
+                *this, "Switching to the new image",
+                std::vector<std::string>{kPkexec, kHelper, "switch", "--project", m_root});
+            m_console->signalFinished().connect([this](bool ok) {
+                const std::string text = m_console ? m_console->output() : std::string();
+                if (m_console)
+                    m_console->close();
+                if (!ok) {
+                    errorDialog(*this, "Could not switch image",
+                                "dcli-bootc switch did not complete successfully. "
+                                "Check its output and your system's bootc "
+                                "permissions.\n\n"
+                                    + (text.size() > 4000 ? text.substr(text.size() - 4000)
+                                                          : text));
+                    return;
+                }
+                // Safety net: if the switch turned out to stage nothing new,
+                // report the identical image rather than claiming a switch.
+                if (switchReportedNothingStaged(text)) {
+                    showSameImageDialog();
+                    return;
+                }
+                notify("Switching to the new image.", NoticeKind::Neutral, 0);
+            });
+            m_console->present();
+            m_console->run();
         });
 }
 

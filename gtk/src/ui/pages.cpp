@@ -226,15 +226,12 @@ OptionalPage::OptionalPage(Window &window)
         append(*target);
     };
     add(m_rpm, "Disable RPM Fusion (free and nonfree repos)");
-    add(m_terra, "Disable Terra (repos only)");
     add(m_removals, "Disable the selected package removals");
     add(m_brave, "Disable the Brave browser repository");
     add(m_vivaldi, "Disable the Vivaldi repository");
 
     m_rpm->signal_toggled().connect(
         [this] { m_window.selection().disableRpmfusion = m_rpm->get_active(); });
-    m_terra->signal_toggled().connect(
-        [this] { m_window.selection().disableTerra = m_terra->get_active(); });
     m_removals->signal_toggled().connect(
         [this] { m_window.selection().disableRemovals = m_removals->get_active(); });
     m_brave->signal_toggled().connect(
@@ -252,8 +249,6 @@ void OptionalPage::refresh()
     Selection &state = m_window.selection();
     m_rpm->set_active(state.disableRpmfusion);
     m_rpm->set_visible(askedContains("rpmfusion"));
-    m_terra->set_active(state.disableTerra);
-    m_terra->set_visible(askedContains("terra"));
     m_removals->set_active(state.disableRemovals);
     m_removals->set_visible(askedContains("removals"));
     m_brave->set_active(state.disableBraveRepo);
@@ -264,7 +259,7 @@ void OptionalPage::refresh()
 
 Gtk::Widget *OptionalPage::primaryInput() const
 {
-    for (Gtk::CheckButton *box : {m_rpm, m_terra, m_removals, m_brave, m_vivaldi})
+    for (Gtk::CheckButton *box : {m_rpm, m_removals, m_brave, m_vivaldi})
         if (box->get_visible())
             return box;
     return nullptr;

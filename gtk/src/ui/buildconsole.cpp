@@ -21,10 +21,12 @@ const char *const yesNoMarkers[] = {
     "(y/n)",
     "[yes/no]",
     "(yes/no)",
-    // The Kinetic Image Builder's Flatpak question (kept in case the trailing marker is ever
-    // split across separate writes).
-    "apply these changes to your user flatpak installation?",
 };
+
+// The privileged build runs as root, so answering Yes would install the Flatpaks into
+// root's home. The window performs the real user-scoped sync after the build, so this
+// question is always answered No.
+const char *const flatpakPrompt = "apply these changes to your user flatpak installation?";
 
 std::string lowercase(std::string text)
 {
@@ -191,8 +193,17 @@ void BuildConsole::readReady(long count)
 
 void BuildConsole::updatePrompt()
 {
-    unsigned int occurrences = 0;
     const std::string haystack = lowercase(m_text->get_text());
+
+    // Auto-answer the root build's Flatpak question once. The user-scoped sync runs
+    // separately after the build, so the Yes/No row is never shown for it.
+    const bool askedAboutFlatpaks = haystack.find(flatpakPrompt) != std::string::npos;
+    if (askedAboutFlatpaks && !m_flatpakAnswered) {
+        m_flatpakAnswered = true;
+        sendAnswer(false);
+    }
+
+    unsigned int occurrences = 0;
     for (const char *marker : yesNoMarkers) {
         for (std::size_t at = haystack.find(marker); at != std::string::npos;
              at = haystack.find(marker, at + 1))
@@ -202,7 +213,7 @@ void BuildConsole::updatePrompt()
     m_promptRow.set_visible(m_running && m_promptCount > m_answeredPrompts);
 }
 
-void BuildConsole::answer(const bool yes)
+void BuildConsole::sendAnswer(const bool yes)
 {
     if (!m_running || m_stdin == nullptr)
         return;
@@ -210,6 +221,11 @@ void BuildConsole::answer(const bool yes)
     gsize written = 0;
     g_output_stream_write_all(static_cast<GOutputStream *>(m_stdin), line.data(), line.size(),
                               &written, nullptr, nullptr);
+}
+
+void BuildConsole::answer(const bool yes)
+{
+    sendAnswer(yes);
     m_answeredPrompts = m_promptCount;
     m_promptRow.set_visible(false);
 }

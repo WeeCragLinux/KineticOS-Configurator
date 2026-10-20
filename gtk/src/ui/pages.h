@@ -54,7 +54,6 @@ public:
 private:
     Window &m_window;
     Gtk::CheckButton *m_rpm{nullptr};
-    Gtk::CheckButton *m_terra{nullptr};
     Gtk::CheckButton *m_removals{nullptr};
     Gtk::CheckButton *m_brave{nullptr};
     Gtk::CheckButton *m_vivaldi{nullptr};

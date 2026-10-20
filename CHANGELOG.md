@@ -3,6 +3,20 @@
 All notable changes to the KineticOS Configurator are recorded here. The
 version numbering matches the RPM package version (`Version-Release`).
 
+## [0.4.0-8] — 2026-10-20
+
+- Remove Terra completely. The image no longer ships the Terra module, so the
+  configurator no longer treats it as a baseline module or offers **Disable
+  Terra**, and the `terra-mangohud` app coupling is gone. Saving a project now
+  drops entries whose `modules/<name>.yaml` file no longer exists, so an old
+  `- terra` line cannot keep a removed module enabled.
+- Install Flatpaks for the real user. The build runs as root through polkit, so
+  answering its **Apply these changes to your user flatpak installation?**
+  prompt would have installed the apps under `/root`. The configurator now
+  answers that prompt No, then runs `dcli-bootc flatpak sync` as your normal
+  user after a successful build. A failed sync is a warning, not a build
+  failure.
+
 ## [0.4.0-7] — 2026-10-14
 
 - Fix duplicate **Build image now?** dialogs. The async task reconnected its

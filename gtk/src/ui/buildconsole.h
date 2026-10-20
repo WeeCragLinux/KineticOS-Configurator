@@ -32,6 +32,7 @@ public:
 private:
     void append(const std::string &text);
     void updatePrompt();
+    void sendAnswer(bool yes);
     void answer(bool yes);
     void onAction();
     void finish(bool success);
@@ -43,6 +44,7 @@ private:
     char m_readBuffer[4096];
     bool m_running{false};
     bool m_emitted{false};
+    bool m_flatpakAnswered{false};
     unsigned int m_promptCount{0};
     unsigned int m_answeredPrompts{0};
 

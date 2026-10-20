@@ -194,19 +194,13 @@ const std::vector<std::string> &baseImages()
 
 const std::vector<std::string> &baselineModules()
 {
-    static const std::vector<std::string> modules = {"base", "rpmfusion", "terra"};
+    static const std::vector<std::string> modules = {"base", "rpmfusion"};
     return modules;
 }
 
 const std::set<std::string> &rpmfusionApps()
 {
     static const std::set<std::string> apps = {"vlc", "mpv", "steam", "lutris", "discord"};
-    return apps;
-}
-
-const std::set<std::string> &terraApps()
-{
-    static const std::set<std::string> apps = {"terra-mangohud"};
     return apps;
 }
 
@@ -348,9 +342,16 @@ Profile::Profile(const std::string &root)
 
 void Profile::ensureModules(const std::set<std::string> &moduleNames)
 {
+    const std::vector<std::string> &baseline = baselineModules();
     std::map<std::string, bool> states;
     std::vector<std::string> ordered;
     for (const ProfileEntry &entry : m_entries) {
+        // A module removed from the image template (for example Terra) can linger in an
+        // existing profile.yaml. Drop the entry instead of offering a dangling module.
+        const bool isBaseline =
+            std::find(baseline.begin(), baseline.end(), entry.name) != baseline.end();
+        if (!isBaseline && moduleNames.count(entry.name) == 0)
+            continue;
         states[entry.name] = entry.enabled;
         ordered.push_back(entry.name);
     }
@@ -383,24 +384,46 @@ void Profile::ensureModules(const std::set<std::string> &moduleNames)
 
 void Profile::save(const std::string &baseImage, const std::vector<ProfileEntry> &entries)
 {
+    // A module removed from the image template (for example Terra) can linger in an
+    // existing profile.yaml. Drop entries whose module file no longer exists instead of
+    // keeping a dangling module reference.
+    const fs::path moduleDirectory = fs::path(m_path).parent_path() / "modules";
+    const auto moduleExists = [&moduleDirectory](const std::string &name) {
+        std::error_code error;
+        return fs::is_regular_file(moduleDirectory / (name + ".yaml"), error);
+    };
+
+    std::vector<ProfileEntry> live;
+    live.reserve(entries.size());
+    for (const ProfileEntry &entry : entries) {
+        if (moduleExists(entry.name))
+            live.push_back(entry);
+    }
+
     std::vector<std::string> lines = m_lines;
 
     std::map<std::string, std::size_t> existing;
+    std::set<std::size_t> removed;
     for (std::size_t index = m_header + 1; index < m_end; ++index) {
         std::smatch match;
-        if (std::regex_match(lines[index], match, profileItemPattern))
-            existing.emplace(match[4].str(), index);
+        if (!std::regex_match(lines[index], match, profileItemPattern))
+            continue;
+        const std::string name = match[4].str();
+        if (moduleExists(name))
+            existing.emplace(name, index);
+        else
+            removed.insert(index);
     }
 
     std::map<std::size_t, std::vector<std::string>> insertions;
-    for (std::size_t entryIndex = 0; entryIndex < entries.size(); ++entryIndex) {
-        const std::string &name = entries[entryIndex].name;
-        const bool enabled = entries[entryIndex].enabled;
+    for (std::size_t entryIndex = 0; entryIndex < live.size(); ++entryIndex) {
+        const std::string &name = live[entryIndex].name;
+        const bool enabled = live[entryIndex].enabled;
         const auto found = existing.find(name);
         if (found == existing.end()) {
             std::optional<std::size_t> nextIndex;
-            for (std::size_t following = entryIndex + 1; following < entries.size(); ++following) {
-                const auto next = existing.find(entries[following].name);
+            for (std::size_t following = entryIndex + 1; following < live.size(); ++following) {
+                const auto next = existing.find(live[following].name);
                 if (next != existing.end()) {
                     nextIndex = next->second;
                     break;
@@ -465,6 +488,8 @@ void Profile::save(const std::string &baseImage, const std::vector<ProfileEntry>
         const auto insertion = insertions.find(index);
         if (insertion != insertions.end())
             output.insert(output.end(), insertion->second.begin(), insertion->second.end());
+        if (removed.count(index) != 0)
+            continue;
         output.push_back(lines[index]);
     }
     const auto tail = insertions.find(lines.size());
@@ -488,8 +513,6 @@ std::vector<std::string> questions(const Selection &selection)
     std::vector<std::string> asked;
     if (!intersects(chosen, rpmfusionApps()))
         asked.push_back("rpmfusion");
-    if (!intersects(chosen, terraApps()))
-        asked.push_back("terra");
 
     bool removalsAsked = false;
     for (const auto &entry : selection.removalApps) {
@@ -524,8 +547,6 @@ std::vector<ProfileEntry> resolve(const Profile &profile, const Selection &selec
             enabled = true;
         } else if (name == "rpmfusion") {
             enabled = !(selection.disableRpmfusion && wasAsked("rpmfusion"));
-        } else if (name == "terra") {
-            enabled = !(selection.disableTerra && wasAsked("terra"));
         } else if (selection.appModules.count(name) != 0) {
             std::set<std::string> selected;
             const auto found = selection.apps.find(name);

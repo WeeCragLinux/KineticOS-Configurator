@@ -14,6 +14,7 @@
 #include <gtkmm/revealer.h>
 #include <gtkmm/stack.h>
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -62,6 +63,8 @@ private:
     void onBack();
     void onPrimary();
     void writeAndBuild();
+    void syncUserFlatpaks(std::function<void()> done);
+    void finishBuild(const std::string &buildOutput);
     void showAbout();
     void showHelp();
     void showSameImageDialog();

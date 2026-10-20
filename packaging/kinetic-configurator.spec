@@ -1,6 +1,6 @@
 Name:           kinetic-configurator
 Version:        0.4.0
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        KineticOS Image Configurator
 
 License:        MIT
@@ -69,6 +69,13 @@ appstreamcli validate --no-net %{buildroot}%{_datadir}/metainfo/%{app_id}.metain
 %{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 
 %changelog
+* Tue Oct 20 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-8
+- Remove Terra completely: it is no longer a baseline module, the "Disable Terra"
+  option and the terra-mangohud coupling are gone, and saving a project drops
+  module entries whose modules/<name>.yaml file no longer exists
+- Install Flatpaks for the real user: answer No to the root build's Flatpak
+  prompt and run dcli-bootc flatpak sync as the normal user after a successful
+  build, with sync failures reported as a warning rather than a build failure
 * Wed Oct 14 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-7
 - Fix duplicate "Build image now?" dialogs: the async task reconnected its
   dispatcher on every run, so re-running the wizard after going back ran the

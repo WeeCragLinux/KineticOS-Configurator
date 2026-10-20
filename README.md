@@ -1,7 +1,7 @@
 # KineticOS Configurator
 
 **Latest RPM version:**
-[`0.4.0-7.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-7)
+[`0.4.0-8.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-8)
 (`kinetic-configurator`).
 
 KineticOS Configurator is a **GTK 4 (gtkmm) + libadwaita** desktop app that
@@ -23,14 +23,14 @@ These RPMs are for machines running **KineticOS**. Download the binary RPM from 
 then install it with DNF:
 
 ```bash
-sudo dnf install ./kinetic-configurator-0.4.0-7.fc44.x86_64.rpm
+sudo dnf install ./kinetic-configurator-0.4.0-8.fc44.x86_64.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./kinetic-configurator-0.4.0-7.fc44.x86_64.rpm
-sudo ki install ./kinetic-configurator-0.4.0-7.fc44.x86_64.rpm
+sudo kinpkg install ./kinetic-configurator-0.4.0-8.fc44.x86_64.rpm
+sudo ki install ./kinetic-configurator-0.4.0-8.fc44.x86_64.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
@@ -68,15 +68,15 @@ remembers it. On later launches it offers:
   early** and **not recommended for normal use**). The current image stays
   selected by default.
 - **Per-module app selection** — every module with selectable apps gets its own
-  page. The baseline `base`, `rpmfusion`, modules stay enabled; the
+  page. The baseline `base` and `rpmfusion` modules stay enabled; the
   base package list is mandatory and is not offered as app choices. An app module
   is enabled only when at least one of its choices is selected. Newly discovered
   modules are added to `profile.yaml` disabled automatically — there is no
   module-selection prompt.
 - **Optional repositories and removals** — the `removals` module starts disabled
   and each removal is opt-in; selected removals can be turned off here. If no
-  selected app needs a repository, the page offers to disable RPM Fusion,
-  or an already-enabled Brave/Vivaldi vendor repo. Leaving a vendor-repo option
+  selected app needs a repository, the page offers to disable RPM Fusion or an
+  already-enabled Brave/Vivaldi vendor repo. Leaving a vendor-repo option
   unchecked preserves its current state. Selecting Brave or Vivaldi enables the
   matching vendor repo command in the browser module's `pre` script before DNF
   installs the package.
@@ -88,10 +88,18 @@ The wizard writes `profile.yaml` and `modules/*.yaml`, then runs `dcli-bootc gen
 ### 3. Build and switch
 
 After generation the app offers to run `dcli-bootc build` (build only, no
-switch). The build console streams the full output live. If the build asks
-whether to apply changes to the current user's Flatpak installation, choose
-**Yes** or **No** in the build window — the app does not apply those changes for
-you. When the build succeeds the app separately asks whether to switch to the
+switch). The build console streams the full output live. The build runs with
+administrator privileges, so the app answers **No** to dcli-bootc's question
+about applying changes to the root user's Flatpak installation. After a
+successful build the app installs the selected Flatpaks for your own user with
+`dcli-bootc flatpak sync`. They are not baked into the image, do not appear in
+`/var/lib/flatpak`, and stay in your user's Flatpak installation. If the sync
+fails, the image is still valid: run
+`dcli-bootc flatpak sync -p /path/to/your/project` as your normal user. Running
+`dcli-bootc build` manually with `sudo` also sends Flatpaks to root's home, so
+run it as your normal user instead.
+
+When the build succeeds the app separately asks whether to switch to the
 new image and reboot. If the image you built is identical to the deployment this
 computer is currently running, the app says so instead of offering the switch,
 and asks whether to exit or go back to the first step and change your selections.
@@ -266,7 +274,8 @@ one-line `base_image:` edit above always works regardless.
   bash scripts/apply-fastfetch-config.sh --system  # also /etc default (needs sudo)
   ```
   The script also offers bash auto-run in new terminals.
-- **Flatpaks:** listed under `flatpaks:` per module (see Spotify in `content`).
+- **Flatpaks:** listed under `flatpaks:` per module (see Spotify in `content`)
+  and installed per user with `flatpak --user` after the image build.
 
 ## License
 

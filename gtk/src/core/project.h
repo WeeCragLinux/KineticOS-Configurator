@@ -31,7 +31,6 @@ struct Selection {
     std::string baseImage;
     std::map<std::string, std::set<std::string>> apps;
     bool disableRpmfusion{false};
-    bool disableTerra{false};
     bool disableBraveRepo{false};
     bool disableVivaldiRepo{false};
     bool braveRepoEnabled{false};
@@ -56,7 +55,8 @@ public:
     const std::string &baseImage() const { return m_baseImage; }
     const std::vector<ProfileEntry> &entries() const { return m_entries; }
 
-    // Keeps the baseline modules active and lists every discovered module disabled.
+    // Keeps the baseline modules active, drops entries whose module no longer exists, and
+    // lists every discovered module disabled.
     void ensureModules(const std::set<std::string> &moduleNames);
 
     void save(const std::string &baseImage, const std::vector<ProfileEntry> &entries);
@@ -90,7 +90,6 @@ const std::string &defaultImage();
 const std::vector<std::string> &baseImages();
 const std::vector<std::string> &baselineModules();
 const std::set<std::string> &rpmfusionApps();
-const std::set<std::string> &terraApps();
 const std::set<std::string> &browserRepoApps(const std::string &repo);
 const std::string &browserRepoUrl(const std::string &repo);
 

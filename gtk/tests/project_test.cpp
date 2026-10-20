@@ -42,11 +42,11 @@ void makeProject(const fs::path &root, const bool appEnabled = false)
               "enabled_modules:\n"
               "- base\n"
               "- rpmfusion\n"
-              "- terra\n"
+              "- extras\n"
               + std::string(appEnabled ? "- apps\n" : "#- apps\n"));
     writeFile(root / "modules" / "base.yaml", "description: base\npackages: []\n");
     writeFile(root / "modules" / "rpmfusion.yaml", "description: RPM Fusion repos\npackages: []\n");
-    writeFile(root / "modules" / "terra.yaml", "description: Terra repos\npackages: []\n");
+    writeFile(root / "modules" / "extras.yaml", "description: Extras\npackages: []\n");
     writeFile(root / "modules" / "apps.yaml", "description: apps\npackages:\n  #- sample-app\n");
 }
 
@@ -55,6 +55,22 @@ bool enabledOf(const std::vector<kineticos::ProfileEntry> &entries, const std::s
     for (const auto &entry : entries)
         if (entry.name == name)
             return entry.enabled;
+    return false;
+}
+
+bool hasEntry(const std::vector<kineticos::ProfileEntry> &entries, const std::string &name)
+{
+    for (const auto &entry : entries)
+        if (entry.name == name)
+            return true;
+    return false;
+}
+
+bool contains(const std::vector<std::string> &values, const std::string &name)
+{
+    for (const std::string &value : values)
+        if (value == name)
+            return true;
     return false;
 }
 
@@ -91,7 +107,8 @@ void testDisabledModuleEnabledOnlyWithApp()
     g_assert_false(enabledOf(resolved, "apps"));
     g_assert_true(enabledOf(resolved, "base"));
     g_assert_true(enabledOf(resolved, "rpmfusion"));
-    g_assert_true(enabledOf(resolved, "terra"));
+    g_assert_true(enabledOf(resolved, "extras"));
+    g_assert_false(contains(kineticos::questions(selection), "terra"));
 
     selection.apps["apps"] = {"sample-app"};
     resolved = kineticos::resolve(profile, selection);
@@ -104,13 +121,13 @@ void testNewModulesAddedDisabledAndBaselineEnabled()
     const fs::path root = makeRoot();
     fs::create_directories(root / "modules");
     writeFile(root / "profile.yaml",
-              "base_image: example\nenabled_modules:\n- base\n#- rpmfusion\n#- terra\n");
+              "base_image: example\nenabled_modules:\n- base\n#- rpmfusion\n#- extras\n");
     kineticos::Profile profile(root.string());
     profile.ensureModules({"apps", "new-apps"});
     const auto &entries = profile.entries();
-    g_assert_cmpuint(entries.size(), ==, 5);
+    g_assert_cmpuint(entries.size(), ==, 4);
     g_assert_true(enabledOf(entries, "rpmfusion"));
-    g_assert_true(enabledOf(entries, "terra"));
+    g_assert_false(hasEntry(entries, "extras"));
     g_assert_false(enabledOf(entries, "apps"));
     g_assert_false(enabledOf(entries, "new-apps"));
     fs::remove_all(root);
@@ -120,6 +137,9 @@ void testProfileSavePreservesComments()
 {
     const fs::path root = makeRoot();
     fs::create_directories(root / "modules");
+    for (const char *name : {"base", "rpmfusion", "extras", "apps", "discovered"})
+        writeFile(root / "modules" / (std::string(name) + ".yaml"),
+                  "description: " + std::string(name) + "\npackages: []\n");
     writeFile(root / "profile.yaml",
               "# project comment\n"
               "base_image: old-image  # keep this note\n"
@@ -127,7 +147,7 @@ void testProfileSavePreservesComments()
               "- base # always on\n"
               "# explanatory comment stays in place\n"
               "#- rpmfusion # was disabled\n"
-              "  # - terra # was disabled too\n"
+              "  # - extras # was disabled too\n"
               "- apps # app selection\n"
               "package_manager: dnf\n"
               "# end comment\n");
@@ -135,12 +155,12 @@ void testProfileSavePreservesComments()
     g_assert_cmpuint(profile.entries().size(), ==, 4);
     g_assert_true(enabledOf(profile.entries(), "base"));
     g_assert_false(enabledOf(profile.entries(), "rpmfusion"));
-    g_assert_false(enabledOf(profile.entries(), "terra"));
+    g_assert_false(enabledOf(profile.entries(), "extras"));
     g_assert_true(enabledOf(profile.entries(), "apps"));
 
     profile.save("new-image", {{"base", true},
                                {"rpmfusion", true},
-                               {"terra", false},
+                               {"extras", false},
                                {"apps", false},
                                {"discovered", false}});
     const std::string saved = readFile(root / "profile.yaml");
@@ -149,7 +169,7 @@ void testProfileSavePreservesComments()
     g_assert_nonnull(std::strstr(saved.c_str(), "package_manager: dnf\n# end comment\n"));
     g_assert_nonnull(std::strstr(saved.c_str(), "base_image: new-image  # keep this note"));
     g_assert_nonnull(std::strstr(saved.c_str(), "- rpmfusion # was disabled"));
-    g_assert_nonnull(std::strstr(saved.c_str(), "  # - terra # was disabled too"));
+    g_assert_nonnull(std::strstr(saved.c_str(), "  # - extras # was disabled too"));
     g_assert_nonnull(std::strstr(saved.c_str(), "#- apps # app selection"));
     g_assert_nonnull(std::strstr(saved.c_str(), "#- discovered"));
     fs::remove_all(root);
@@ -161,10 +181,10 @@ void testBrowserAppsEnableRepoCommands()
     fs::create_directories(root / "modules");
     writeFile(root / "profile.yaml",
               "base_image: ghcr.io/theblack-don/kineticos:default\n"
-              "enabled_modules:\n- base\n- rpmfusion\n- terra\n#- browsers\n");
+              "enabled_modules:\n- base\n- rpmfusion\n- extras\n#- browsers\n");
     writeFile(root / "modules" / "base.yaml", "description: base\npackages: []\n");
     writeFile(root / "modules" / "rpmfusion.yaml", "description: r\npackages: []\n");
-    writeFile(root / "modules" / "terra.yaml", "description: t\npackages: []\n");
+    writeFile(root / "modules" / "extras.yaml", "description: e\npackages: []\n");
     writeFile(root / "modules" / "browsers.yaml",
               "description: browsers\n"
               "packages:\n"
@@ -203,12 +223,32 @@ void testBrowserAppsEnableRepoCommands()
     fs::remove_all(root);
 }
 
-bool contains(const std::vector<std::string> &values, const std::string &name)
+void testStaleModuleEntriesDropped()
 {
-    for (const std::string &value : values)
-        if (value == name)
-            return true;
-    return false;
+    const fs::path root = makeRoot();
+    makeProject(root);
+    // The image template no longer ships Terra, but an old project can still list it.
+    writeFile(root / "profile.yaml",
+              "base_image: ghcr.io/theblack-don/kineticos:default\n"
+              "enabled_modules:\n- base\n- rpmfusion\n- terra\n#- apps\n");
+    kineticos::Profile profile(root.string());
+    auto modules = kineticos::loadModules(root.string());
+    std::set<std::string> names;
+    for (const auto &entry : modules)
+        names.insert(entry.first);
+    profile.ensureModules(names);
+    g_assert_false(hasEntry(profile.entries(), "terra"));
+
+    kineticos::Selection selection;
+    selection.baseImage = profile.baseImage();
+    selection.appModules.insert("apps");
+    kineticos::apply(root.string(), selection, modules, profile);
+
+    const std::string saved = readFile(root / "profile.yaml");
+    g_assert_null(std::strstr(saved.c_str(), "terra"));
+    g_assert_nonnull(std::strstr(saved.c_str(), "- base"));
+    g_assert_nonnull(std::strstr(saved.c_str(), "- rpmfusion"));
+    fs::remove_all(root);
 }
 
 void testRemovalsOptInAndDisable()
@@ -272,6 +312,7 @@ int main(int argc, char **argv)
     g_test_add_func("/project/ensure-modules", testNewModulesAddedDisabledAndBaselineEnabled);
     g_test_add_func("/project/profile-save", testProfileSavePreservesComments);
     g_test_add_func("/project/browser-repo", testBrowserAppsEnableRepoCommands);
+    g_test_add_func("/project/stale-modules", testStaleModuleEntriesDropped);
     g_test_add_func("/project/removals", testRemovalsOptInAndDisable);
     return g_test_run();
 }

@@ -54,7 +54,7 @@ Every module with selectable apps gets its own page. Check the software you want
 included in your image. Newly discovered modules are added automatically
 (disabled); there is no module-selection prompt.
 
-- The baseline `base`, `rpmfusion`, and `terra` modules stay enabled by default.
+- The baseline `base` and `rpmfusion` modules stay enabled by default.
 - The base package list is mandatory and is not offered as app choices.
 - An app module is enabled only when at least one of its choices is selected.
 - The `removals` module starts disabled; each removal is opt-in. If none are
@@ -65,9 +65,9 @@ included in your image. Newly discovered modules are added automatically
 ### 4. Optional repositories and removals
 
 Review optional repositories and selected removals. Repositories that no
-selected app needs can be disabled here; RPM Fusion and Terra stay enabled
-unless you explicitly disable them, and leaving a vendor-repo option unchecked
-preserves that repository's current state.
+selected app needs can be disabled here; RPM Fusion stays enabled unless you
+explicitly disable it, and leaving a vendor-repo option unchecked preserves
+that repository's current state.
 
 ### 5. Review
 
@@ -81,11 +81,14 @@ Writing updates `profile.yaml` and `modules/*.yaml`, then runs `dcli-bootc gen`.
 ### 7. Build
 
 After a successful generation, the configurator offers to run
-`dcli-bootc build`. When the build asks whether to apply changes to the current
-user's Flatpak installation, choose **Yes** or **No** in the build window; the
-app does not apply those changes for you. The build does not switch deployments
-automatically. After a successful build, the app separately asks whether to
-switch to the new image and reboot.
+`dcli-bootc build`. The build runs with administrator privileges, so the app
+answers **No** to dcli-bootc's question about applying changes to the root
+user's Flatpak installation. After a successful build the app installs the
+selected Flatpaks for your own user with `dcli-bootc flatpak sync`. They are not
+baked into the image and do not appear in `/var/lib/flatpak`. If that sync
+fails, the image is still valid; run `dcli-bootc flatpak sync -p <project>`
+later. The build does not switch deployments automatically. After a successful
+build, the app separately asks whether to switch to the new image and reboot.
 
 If the image you built is identical to the deployment this computer is currently
 running, the app says so instead of offering the switch, and asks whether to
@@ -125,3 +128,7 @@ Your preferences (such as the system title bar mode) are stored in
   writable. Corrupt checkouts are replaced with validated fresh clones.
 - **Build fails** — the build window shows the full command output. Check it,
   fix the selection or project, and try again from the wizard.
+- **Flatpaks are missing after a reboot** — the post-build sync may have failed.
+  Run `dcli-bootc flatpak sync -p /path/to/your/project` as your normal user.
+  Running `dcli-bootc build` manually with `sudo` also sends Flatpaks to root's
+  home, so run it as your normal user instead.
