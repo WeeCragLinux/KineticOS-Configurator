@@ -3,6 +3,12 @@
 All notable changes to the KineticOS Configurator are recorded here. The
 version numbering matches the RPM package version (`Version-Release`).
 
+## [0.4.0-9] — 2026-10-24
+
+- Only offer to disable package removals that were already enabled in a saved
+  project. Removals chosen on the wizard's removals page are applied directly
+  instead of prompting to disable them at the end of the wizard.
+
 ## [0.4.0-8] — 2026-10-20
 
 - Remove Terra completely. The image no longer ships the Terra module, so the

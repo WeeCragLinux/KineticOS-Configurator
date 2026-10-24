@@ -38,6 +38,9 @@ struct Selection {
     std::set<std::string> appModules;
     std::map<std::string, std::set<std::string>> removalApps;
     bool disableRemovals{false};
+    // Whether the user changed a removals page in this wizard session. Removals loaded from
+    // a saved project can still be turned off; removals chosen here are applied directly.
+    bool removalsEdited{false};
 
     // Every selected install package, excluding removals.
     std::set<std::string> chosen() const;

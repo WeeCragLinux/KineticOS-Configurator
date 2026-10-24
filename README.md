@@ -1,7 +1,7 @@
 # KineticOS Configurator
 
 **Latest RPM version:**
-[`0.4.0-8.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-8)
+[`0.4.0-9.fc44`](https://github.com/WeeCragLinux/KineticOS-Configurator/releases/tag/v0.4.0-9)
 (`kinetic-configurator`).
 
 KineticOS Configurator is a **GTK 4 (gtkmm) + libadwaita** desktop app that
@@ -23,14 +23,14 @@ These RPMs are for machines running **KineticOS**. Download the binary RPM from 
 then install it with DNF:
 
 ```bash
-sudo dnf install ./kinetic-configurator-0.4.0-8.fc44.x86_64.rpm
+sudo dnf install ./kinetic-configurator-0.4.0-9.fc44.x86_64.rpm
 ```
 
 For the persistent KineticOS usr-overlay, use either equivalent command:
 
 ```bash
-sudo kinpkg install ./kinetic-configurator-0.4.0-8.fc44.x86_64.rpm
-sudo ki install ./kinetic-configurator-0.4.0-8.fc44.x86_64.rpm
+sudo kinpkg install ./kinetic-configurator-0.4.0-9.fc44.x86_64.rpm
+sudo ki install ./kinetic-configurator-0.4.0-9.fc44.x86_64.rpm
 ```
 
 Do not install this package with `rpm-ostree`.
@@ -74,12 +74,13 @@ remembers it. On later launches it offers:
   modules are added to `profile.yaml` disabled automatically — there is no
   module-selection prompt.
 - **Optional repositories and removals** — the `removals` module starts disabled
-  and each removal is opt-in; selected removals can be turned off here. If no
-  selected app needs a repository, the page offers to disable RPM Fusion or an
-  already-enabled Brave/Vivaldi vendor repo. Leaving a vendor-repo option
-  unchecked preserves its current state. Selecting Brave or Vivaldi enables the
-  matching vendor repo command in the browser module's `pre` script before DNF
-  installs the package.
+  and each removal is opt-in. Removals chosen in the wizard are applied directly;
+  only removals already enabled in a saved project still offer to be turned off
+  here. If no selected app needs a repository, the page offers to disable RPM
+  Fusion or an already-enabled Brave/Vivaldi vendor repo. Leaving a vendor-repo
+  option unchecked preserves its current state. Selecting Brave or Vivaldi
+  enables the matching vendor repo command in the browser module's `pre` script
+  before DNF installs the package.
 - **Review** — a summary of the base image and every module with its selected
   apps and removals.
 

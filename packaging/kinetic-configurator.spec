@@ -1,6 +1,6 @@
 Name:           kinetic-configurator
 Version:        0.4.0
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        KineticOS Image Configurator
 
 License:        MIT
@@ -69,6 +69,10 @@ appstreamcli validate --no-net %{buildroot}%{_datadir}/metainfo/%{app_id}.metain
 %{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 
 %changelog
+* Sat Oct 24 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-9
+- Only offer to disable package removals that were already enabled in a saved
+  project. Removals chosen on the wizard's removals page are now applied
+  directly instead of prompting to disable them at the end
 * Tue Oct 20 2026 WeeCragLinux <weecraglinux@users.noreply.github.com> - 0.4.0-8
 - Remove Terra completely: it is no longer a baseline module, the "Disable Terra"
   option and the terra-mangohud coupling are gone, and saving a project drops

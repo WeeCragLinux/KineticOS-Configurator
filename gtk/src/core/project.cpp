@@ -108,6 +108,20 @@ bool intersects(const std::set<std::string> &left, const std::set<std::string> &
     return false;
 }
 
+// Removals loaded from the saved project can still be turned off at the end. Once the user
+// edits a removals page, their choices are explicit and the opt-out is not offered again.
+bool removalsAsked(const Selection &selection)
+{
+    if (selection.removalsEdited)
+        return false;
+    for (const auto &entry : selection.removalApps) {
+        const auto selected = selection.apps.find(entry.first);
+        if (selected != selection.apps.end() && intersects(selected->second, entry.second))
+            return true;
+    }
+    return false;
+}
+
 struct Item {
     std::size_t index{0};
     std::string section;
@@ -514,15 +528,7 @@ std::vector<std::string> questions(const Selection &selection)
     if (!intersects(chosen, rpmfusionApps()))
         asked.push_back("rpmfusion");
 
-    bool removalsAsked = false;
-    for (const auto &entry : selection.removalApps) {
-        const auto selected = selection.apps.find(entry.first);
-        if (selected != selection.apps.end() && intersects(selected->second, entry.second)) {
-            removalsAsked = true;
-            break;
-        }
-    }
-    if (removalsAsked)
+    if (removalsAsked(selection))
         asked.push_back("removals");
 
     if (!intersects(chosen, browserRepoApps("brave")) && selection.braveRepoEnabled)
@@ -566,7 +572,8 @@ std::vector<ProfileEntry> resolve(const Profile &profile, const Selection &selec
                     installs.insert(app);
             }
             enabled = !installs.empty()
-                || (!selectedRemovals.empty() && !selection.disableRemovals);
+                || (!selectedRemovals.empty()
+                    && !(selection.disableRemovals && wasAsked("removals")));
         } else {
             enabled = entry.enabled;
         }
@@ -622,6 +629,7 @@ void apply(const std::string &root, const Selection &selection,
     (void)root;
     const std::vector<ProfileEntry> entries = resolve(profile, selection);
     const std::set<std::string> chosenApps = selection.chosen();
+    const bool disableRemovals = selection.disableRemovals && removalsAsked(selection);
 
     for (const ProfileEntry &entry : entries) {
         if (entry.name == "base")
@@ -639,7 +647,7 @@ void apply(const std::string &root, const Selection &selection,
             if (selected != selection.apps.end())
                 chosen = selected->second;
         }
-        if (selection.disableRemovals) {
+        if (disableRemovals) {
             const auto removals = selection.removalApps.find(entry.name);
             if (removals != selection.removalApps.end()) {
                 for (const std::string &name : removals->second)

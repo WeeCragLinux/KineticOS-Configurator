@@ -279,10 +279,18 @@ void testRemovalsOptInAndDisable()
     g_assert_false(enabledOf(kineticos::resolve(profile, selection), "removals"));
     g_assert_false(contains(kineticos::questions(selection), "removals"));
 
+    // Removals already enabled in the saved project still offer the opt-out.
     selection.apps["removals"] = {"dolphin"};
     g_assert_true(enabledOf(kineticos::resolve(profile, selection), "removals"));
     g_assert_true(contains(kineticos::questions(selection), "removals"));
     g_assert_cmpuint(selection.chosen().count("dolphin"), ==, 0);
+
+    // Once the user edits the removals page, the opt-out is not offered and the choice is
+    // applied even if a stale checkbox state says otherwise.
+    selection.removalsEdited = true;
+    selection.disableRemovals = true;
+    g_assert_true(enabledOf(kineticos::resolve(profile, selection), "removals"));
+    g_assert_false(contains(kineticos::questions(selection), "removals"));
     kineticos::apply(root.string(), selection, modules, profile);
 
     const std::string saved = readFile(root / "modules" / "removals.yaml");
@@ -291,7 +299,8 @@ void testRemovalsOptInAndDisable()
     const kineticos::Profile enabled(root.string());
     g_assert_true(enabledOf(enabled.entries(), "removals"));
 
-    selection.disableRemovals = true;
+    // Removals that came from the saved project can still be disabled at the end.
+    selection.removalsEdited = false;
     kineticos::Profile reloaded(root.string());
     kineticos::apply(root.string(), selection, modules, reloaded);
     const kineticos::Profile disabled(root.string());

@@ -196,8 +196,11 @@ void ModulePage::sync()
     for (const auto &[app, box] : m_boxes)
         if (box->get_active())
             selected.insert(app.name);
-    if (m_window.selection().removalApps.count(m_name) != 0)
+    if (m_removal) {
+        m_window.selection().removalsEdited = true;
         m_window.selection().disableRemovals = false;
+        m_window.refreshFlow();
+    }
     if (selected.empty())
         m_window.selection().apps.erase(m_name);
     else

@@ -64,7 +64,9 @@ included in your image. Newly discovered modules are added automatically
 
 ### 4. Optional repositories and removals
 
-Review optional repositories and selected removals. Repositories that no
+Review optional repositories. If the saved project already enables removals,
+this page also offers to turn those removals off; removals chosen in the wizard
+are applied directly and are not offered here again. Repositories that no
 selected app needs can be disabled here; RPM Fusion stays enabled unless you
 explicitly disable it, and leaving a vendor-repo option unchecked preserves
 that repository's current state.
